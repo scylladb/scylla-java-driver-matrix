@@ -1,0 +1,51 @@
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
+index e68751157..09796de3d 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
+@@ -173,6 +173,8 @@ public class CCMBridge implements CCMAccess {
+     String installDirectory = System.getProperty("cassandra.directory");
+     String branch = System.getProperty("cassandra.branch");
+ 
++    String inputScyllaVersion = System.getProperty("scylla.version");
++
+     String dseProperty = System.getProperty("dse");
+     // If -Ddse, if the value is empty interpret it as enabled,
+     // otherwise if there is a value, parse as boolean.
+@@ -185,7 +187,9 @@ public class CCMBridge implements CCMAccess {
+     } else if (branch != null && !branch.trim().isEmpty()) {
+       installArgs.add("-v git:" + branch.trim().replaceAll("\"", ""));
+     } else {
+-      installArgs.add("-v " + inputCassandraVersion);
++      installArgs.add("--scylla");
++      installArgs.add("-v " + inputScyllaVersion);
++      installArgs.add("--id 0");
+     }
+ 
+     if (isDse) {
+@@ -624,7 +628,7 @@ public class CCMBridge implements CCMAccess {
+     String remoteLogItf = ipOfNode(n) + ":" + TestUtils.findAvailablePort();
+     execute(
+         CCM_COMMAND
+-            + " add node%d -d dc%s -i %s%d -t %s -l %s --binary-itf %s -j %d -r %s -s -b"
++            + " add node%d --scylla -d dc%s -i %s%d -t %s -l %s --binary-itf %s -j %d -r %s -s -b"
+             + (isDSE ? " --dse" : ""),
+         n,
+         dc,
+@@ -713,7 +717,7 @@ public class CCMBridge implements CCMAccess {
+     final PrintWriter pw = new PrintWriter(sw);
+     closer.register(pw);
+     try {
+-      logger.trace("Executing: " + fullCommand);
++      logger.warn("Executing: " + fullCommand);
+       CommandLine cli = CommandLine.parse(fullCommand);
+       Executor executor = new DefaultExecutor();
+       LogOutputStream outStream =
+@@ -875,6 +879,8 @@ public class CCMBridge implements CCMAccess {
+       cassandraConfiguration.put("storage_port", RANDOM_PORT);
+       cassandraConfiguration.put("rpc_port", RANDOM_PORT);
+       cassandraConfiguration.put("native_transport_port", RANDOM_PORT);
++      cassandraConfiguration.put("api_port", RANDOM_PORT);
++      cassandraConfiguration.put("prometheus_port", RANDOM_PORT);
+     }
+ 
+     /**

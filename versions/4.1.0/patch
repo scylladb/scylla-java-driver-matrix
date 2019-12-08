@@ -1,0 +1,138 @@
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+index 54783a3d6..bb677b674 100644
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+@@ -59,7 +59,7 @@ public class CcmBridge implements AutoCloseable {
+ 
+   private final AtomicBoolean created = new AtomicBoolean();
+ 
+-  private final String ipPrefix;
++  private final String idPrefix;
+ 
+   private final Map<String, Object> cassandraConfiguration;
+   private final Map<String, Object> dseConfiguration;
+@@ -70,6 +70,7 @@ public class CcmBridge implements AutoCloseable {
+   private final String jvmArgs;
+ 
+   public static final Version VERSION = Version.parse(System.getProperty("ccm.version", "3.11.0"));
++  public static final String SCYLLA_VERSION = System.getProperty("scylla.version");
+ 
+   public static final String INSTALL_DIRECTORY = System.getProperty("ccm.directory");
+ 
+@@ -126,7 +127,7 @@ public class CcmBridge implements AutoCloseable {
+   private CcmBridge(
+       Path configDirectory,
+       int[] nodes,
+-      String ipPrefix,
++      String idPrefix,
+       Map<String, Object> cassandraConfiguration,
+       Map<String, Object> dseConfiguration,
+       List<String> dseConfigurationRawYaml,
+@@ -145,7 +146,7 @@ public class CcmBridge implements AutoCloseable {
+     } else {
+       this.nodes = nodes;
+     }
+-    this.ipPrefix = ipPrefix;
++    this.idPrefix = idPrefix;
+     this.cassandraConfiguration = cassandraConfiguration;
+     this.dseConfiguration = dseConfiguration;
+     this.rawDseYaml = dseConfigurationRawYaml;
+@@ -194,7 +195,7 @@ public class CcmBridge implements AutoCloseable {
+         createOptions.add("-v git:" + BRANCH.trim().replaceAll("\"", ""));
+ 
+       } else {
+-        createOptions.add("-v " + VERSION.toString());
++        createOptions.add("-v " + SCYLLA_VERSION);
+       }
+       if (DSE_ENABLEMENT) {
+         createOptions.add("--dse");
+@@ -202,18 +203,20 @@ public class CcmBridge implements AutoCloseable {
+       execute(
+           "create",
+           "ccm_1",
+-          "-i",
+-          ipPrefix,
++          "--scylla",
++          "--id",
++          idPrefix,
+           "-n",
+           Arrays.stream(nodes).mapToObj(n -> "" + n).collect(Collectors.joining(":")),
+           createOptions.stream().collect(Collectors.joining(" ")));
+-
+       for (Map.Entry<String, Object> conf : cassandraConfiguration.entrySet()) {
+-        execute("updateconf", String.format("%s:%s", conf.getKey(), conf.getValue()));
+-      }
+-      if (getCassandraVersion().compareTo(Version.V2_2_0) >= 0) {
+-        execute("updateconf", "enable_user_defined_functions:true");
++        //   execute("updateconf", String.format("%s:%s", conf.getKey(), conf.getValue()));
++        logger.warn("skipping ({}:{})", conf.getKey(), conf.getValue());
+       }
++      // if (getCassandraVersion().compareTo(Version.V2_2_0) >= 0) {
++      //   execute("updateconf", "enable_user_defined_functions:true");
++      // }
++
+       if (DSE_ENABLEMENT) {
+         for (Map.Entry<String, Object> conf : dseConfiguration.entrySet()) {
+           execute("updatedseconf", String.format("%s:%s", conf.getKey(), conf.getValue()));
+@@ -275,6 +278,7 @@ public class CcmBridge implements AutoCloseable {
+             + " --config-dir="
+             + configDirectory.toFile().getAbsolutePath();
+ 
++    logger.debug("Executing: " + command);
+     execute(CommandLine.parse(command));
+   }
+ 
+@@ -361,7 +365,7 @@ public class CcmBridge implements AutoCloseable {
+     private final Map<String, Object> dseConfiguration = new LinkedHashMap<>();
+     private final List<String> dseRawYaml = new ArrayList<>();
+     private final List<String> jvmArgs = new ArrayList<>();
+-    private String ipPrefix = "127.0.0.";
++    private String idPrefix = "1";
+     private final List<String> createOptions = new ArrayList<>();
+     private final List<String> dseWorkloads = new ArrayList<>();
+ 
+@@ -377,7 +381,7 @@ public class CcmBridge implements AutoCloseable {
+         throw new RuntimeException(e);
+       }
+       // disable auto_snapshot by default to reduce disk usage when destroying schema.
+-      withCassandraConfiguration("auto_snapshot", "false");
++      // withCassandraConfiguration("auto_snapshot", "false");
+     }
+ 
+     public Builder withCassandraConfiguration(String key, Object value) {
+@@ -405,8 +409,8 @@ public class CcmBridge implements AutoCloseable {
+       return this;
+     }
+ 
+-    public Builder withIpPrefix(String ipPrefix) {
+-      this.ipPrefix = ipPrefix;
++    public Builder withIdPrefix(String idPrefix) {
++      this.idPrefix = idPrefix;
+       return this;
+     }
+ 
+@@ -456,7 +460,7 @@ public class CcmBridge implements AutoCloseable {
+       return new CcmBridge(
+           configDirectory,
+           nodes,
+-          ipPrefix,
++          idPrefix,
+           cassandraConfiguration,
+           dseConfiguration,
+           dseRawYaml,
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
+index 1e502238e..70835ad15 100644
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
+@@ -112,6 +112,11 @@ public class CustomCcmRule extends BaseCcmRule {
+       return this;
+     }
+ 
++    public Builder withIdPrefix(String idPrefix) {
++      bridgeBuilder.withIdPrefix(idPrefix);
++      return this;
++    }
++
+     public CustomCcmRule build() {
+       return new CustomCcmRule(bridgeBuilder.build());
+     }
