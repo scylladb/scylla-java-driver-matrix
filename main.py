@@ -16,7 +16,7 @@ def main(java_driver_git, scylla_install_dir, tests, versions, scylla_version):
     logging.info('=== JAVA DRIVER MATRIX RESULTS ===')
     status = 0
     for result in results:
-        if result.summary and len(result.summary.splitlines()) > 0:
+        if not result.summary:
             status = 1
     quit(status)
 
@@ -30,7 +30,7 @@ if __name__ == '__main__':
                         nargs='?', default='')
     parser.add_argument('--versions', default=versions,
                         help='java-driver versions to test, default={}'.format(','.join(versions)))
-    parser.add_argument('--tests', default='tests.integration.standard',
+    parser.add_argument('--tests', default='*',
                         help='tests to pass to nosetests tool, default=tests.integration.standard')
     parser.add_argument('--scylla-version', help="relocatable scylla version to use", default=os.environ.get('SCYLLA_VERSION', None))
     arguments = parser.parse_args()

@@ -35,7 +35,7 @@ index ebcb74d46..97b31a71a 100644
    }
  }
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
-index f10a2cdeb..a1b84f5ad 100644
+index f10a2cdeb..a9f3e506f 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 @@ -59,7 +59,7 @@ public class CcmBridge implements AutoCloseable {
@@ -100,7 +100,8 @@ index f10a2cdeb..a1b84f5ad 100644
 +        // logger.warn("skipping ({}:{})", conf.getKey(), conf.getValue());
        }
        if (getCassandraVersion().compareTo(Version.V2_2_0) >= 0) {
-         execute("updateconf", "enable_user_defined_functions:true");
+-        execute("updateconf", "enable_user_defined_functions:true");
++        execute("updateconf", "enable_user_defined_functions:true", "experimental:true");
        }
 +
        if (DSE_ENABLEMENT) {

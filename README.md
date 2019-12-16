@@ -19,8 +19,14 @@ python3 ./main.py ../java-driver/ --versions 4.3.0 --scylla-version unstable/mas
 ```
 
 ### Running with docker
-```
+```bash
 ./scripts/run_test.sh python ./main.py ../java-driver/ --version 4.3.0 --scylla-version unstable/master:201910020524```
+```
+
+### Running specific test
+```bash
+./scripts/run_test.sh python3 ./main.py ../java-driver/ --tests QueryTraceIT --version 4.1.0 --scylla-version u
+nstable/master:201912142059
 ```
 
 ## Uploading docker images
@@ -40,7 +46,11 @@ echo "${UNIT_TEST_DOCKER_IMAGE}" > scripts/image
 * fix `ccm node1 pause`, a bug in CCM
 
 ```
-# running specific tests
+# running specific tests stright from java-driver dir (on branches 4.x)
 mvn -pl infra-tests install
 mvn -pl integration-tests -Dtest='SelectOtherClausesIT,ExecutionInfoWarningsIT' test -Dscylla.version=unstable/master:201910020524
+
+# running on java-driver branches 3.x
+mvn -pl driver-core test -Dtest.groups='long' -Dtest='*' -Dscylla.version=unstable/master:201910020524
+
 ```
