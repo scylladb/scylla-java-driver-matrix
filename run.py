@@ -28,7 +28,7 @@ class Run:
     def _ignoreSet(self):
         ignore_tests = []
         with open(self._ignoreFile()) as f:
-            content = yaml.load(f)
+            content = yaml.safe_load(f)
             ignore_tests.extend(content['tests'])
         return set(ignore_tests)
 
