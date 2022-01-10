@@ -34,7 +34,7 @@ nstable/master:201912142059
 when doing changes to requirements.txt, or any other change to docker image, it can be uploaded like this:
 
 ```bash
-export UNIT_TEST_DOCKER_IMAGE=scylladb/scylla-cassandra-unit-tests:python3.7-$(date +'%Y%m%d')
+export UNIT_TEST_DOCKER_IMAGE=scylladb/scylla-cassandra-unit-tests:python3.8-$(date +'%Y%m%d')
 docker build ./scripts/ -t ${UNIT_TEST_DOCKER_IMAGE}
 docker push ${UNIT_TEST_DOCKER_IMAGE}
 echo "${UNIT_TEST_DOCKER_IMAGE}" > scripts/image
