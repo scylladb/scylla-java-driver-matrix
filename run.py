@@ -46,6 +46,7 @@ class Run:
         patch_file = os.path.join(here, 'versions', self._tag, 'patch')
         if not os.path.exists(patch_file):
             raise Exception('Cannot find patch for version {}'.format(self._tag))
+        subprocess.check_call(f"git apply --check {patch_file}", shell=True)
         command = "patch -p1 -i {}".format(patch_file)
         subprocess.check_call(command, shell=True)
 
