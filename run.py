@@ -52,7 +52,7 @@ class Run:
 
     def _run(self):
         os.chdir(self._java_driver_git)
-        subprocess.check_call('git checkout .'.format(self._tag), shell=True)
+        subprocess.check_call('git checkout .', shell=True)
         subprocess.check_call('git checkout {}'.format(self._tag), shell=True)
         self._apply_patch()
         exclude_str = ''
