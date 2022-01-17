@@ -5,6 +5,8 @@ RUN apt-get -y update \
     && apt-get install -y software-properties-common \
     && apt-add-repository 'deb http://security.debian.org/debian-security stretch/updates main' \
     && apt-get -y update \
+    # Needs to install Java version 1.8 before installing maven. \
+    # Otherwise, the maven will install with a different Java version.
     && apt-get install -y openjdk-8-jdk \
     && apt-get install -y maven git \
     && rm -rf /var/lib/apt/lists/*
