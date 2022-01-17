@@ -6,7 +6,7 @@ RUN apt-get -y update \
     && apt-add-repository 'deb http://security.debian.org/debian-security stretch/updates main' \
     && apt-get -y update \
     && apt-get install -y openjdk-8-jdk \
-    && apt-get install -y maven \
+    && apt-get install -y maven git \
     && rm -rf /var/lib/apt/lists/*
 
 ADD requirements.txt requirements.txt
