@@ -57,6 +57,7 @@ export SCYLLA_DBUILD_SO_DIR=${SCYLLA_DBUILD_SO_DIR:-${CASSANDRA_DIR}/dynamic_lib
 mkdir -p ${HOME}/.ccm
 mkdir -p ${HOME}/.m2
 mkdir -p ${HOME}/.local/lib
+mkdir -p ${HOME}/.config
 
 function check_directory_exists()
 {
@@ -128,6 +129,7 @@ docker_cmd="docker run --detach=true \
     -v ${HOME}/.local:${HOME}/.local \
     -v ${HOME}/.ccm:${HOME}/.ccm \
     -v ${HOME}/.m2:${HOME}/.m2 \
+    -v ${HOME}/.config:${HOME}/.config \
     --network=bridge --privileged \
     ${DOCKER_IMAGE} bash -c 'pip install --user -e ${CCM_DIR} ;  export PATH=\$PATH:\${HOME}/.local/bin; $*'"
 
