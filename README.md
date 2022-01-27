@@ -29,6 +29,24 @@ python3 ./main.py ../java-driver/ --versions 4.3.0 --scylla-version unstable/mas
 nstable/master:201912142059
 ```
 
+### Running from PyCharm:
+- Create a basic Python configure.
+- Working directory value is: `/home/oren/Desktop/github/python-driver-matrix`
+- Script path value is: `main.py`
+- Parameters value are:
+  ```bash
+  /home/oren/Desktop/github/java-driver/
+  /home/oren/Desktop/github/scylla/
+  --version
+  4.x
+  --scylla-version
+  unstable/master/2022-01-03T13_22_36Z
+  # To run a specific test needs to use
+  # --tests
+  # DirectCompressionIT
+  ```
+* To run a specific test needs to use
+
 ## Uploading docker images
    
 when doing changes to requirements.txt, or any other change to docker image, it can be uploaded like this:

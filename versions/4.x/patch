@@ -5,7 +5,7 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java	(revision 37b48e11762edc8366d38405d9e8d738c9b8e39e)
-+++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java	(date 1641727460977)
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java	(date 1642497037729)
 @@ -59,7 +59,7 @@
  
    private final AtomicBoolean created = new AtomicBoolean();
@@ -41,6 +41,47 @@ diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/
      this.cassandraConfiguration = cassandraConfiguration;
      this.dseConfiguration = dseConfiguration;
      this.rawDseYaml = dseConfigurationRawYaml;
+@@ -194,23 +195,23 @@
+     }
+   }
+ 
+-  private String getCcmVersionString(Version version) {
+-    // for 4.0 pre-releases, the CCM version string needs to be "4.0-alpha1" or "4.0-alpha2"
+-    // Version.toString() always adds a patch value, even if it's not specified when parsing.
+-    if (version.getMajor() == 4
+-        && version.getMinor() == 0
+-        && version.getPatch() == 0
+-        && version.getPreReleaseLabels() != null) {
+-      // truncate the patch version from the Version string
+-      StringBuilder sb = new StringBuilder();
+-      sb.append(version.getMajor()).append('.').append(version.getMinor());
+-      for (String preReleaseString : version.getPreReleaseLabels()) {
+-        sb.append('-').append(preReleaseString);
+-      }
+-      return sb.toString();
+-    }
+-    return version.toString();
+-  }
++//   private String getCcmVersionString(Version version) {
++//     // for 4.0 pre-releases, the CCM version string needs to be "4.0-alpha1" or "4.0-alpha2"
++//     // Version.toString() always adds a patch value, even if it's not specified when parsing.
++//     if (version.getMajor() == 4
++//         && version.getMinor() == 0
++//         && version.getPatch() == 0
++//         && version.getPreReleaseLabels() != null) {
++//       // truncate the patch version from the Version string
++//       StringBuilder sb = new StringBuilder();
++//       sb.append(version.getMajor()).append('.').append(version.getMinor());
++//       for (String preReleaseString : version.getPreReleaseLabels()) {
++//         sb.append('-').append(preReleaseString);
++//       }
++//       return sb.toString();
++//     }
++//     return version.toString();
++//   }
+ 
+   public void create() {
+     if (created.compareAndSet(false, true)) {
 @@ -220,7 +221,7 @@
          createOptions.add("-v git:" + BRANCH.trim().replaceAll("\"", ""));
  
@@ -97,7 +138,7 @@ diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/
          this.configDirectory = Files.createTempDirectory("ccm");
          // mark the ccm temp directories for deletion when the JVM exits
 -        this.configDirectory.toFile().deleteOnExit();
-+//         this.configDirectory.toFile().deleteOnExit();
++        //         this.configDirectory.toFile().deleteOnExit();
 +
        } catch (IOException e) {
          // change to unchecked for now.
@@ -105,7 +146,7 @@ diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/
        }
        // disable auto_snapshot by default to reduce disk usage when destroying schema.
 -      withCassandraConfiguration("auto_snapshot", "false");
-+//       withCassandraConfiguration("auto_snapshot", "false");
++      //       withCassandraConfiguration("auto_snapshot", "false");
      }
  
      public Builder withCassandraConfiguration(String key, Object value) {
@@ -129,23 +170,6 @@ diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/
            cassandraConfiguration,
            dseConfiguration,
            dseRawYaml,
-Index: integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
-IDEA additional info:
-Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
-<+>UTF-8
-===================================================================
-diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
---- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java	(revision 37b48e11762edc8366d38405d9e8d738c9b8e39e)
-+++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java	(date 1641726097897)
-@@ -58,7 +58,7 @@
-                   assertThat(broadcastAddress.getAddress()).isEqualTo(connectAddress.getAddress()));
-       assertThat(node.getListenAddress().get().getAddress()).isEqualTo(connectAddress.getAddress());
-       assertThat(node.getDatacenter()).isEqualTo("dc1");
--      assertThat(node.getRack()).isEqualTo("r1");
-+      assertThat(node.getRack()).isEqualTo("RAC1");
-       if (!CcmBridge.DSE_ENABLEMENT) {
-         // CcmBridge does not report accurate C* versions for DSE, only approximated values
-         assertThat(node.getCassandraVersion()).isEqualTo(ccmRule.getCassandraVersion());
 Index: test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
 IDEA additional info:
 Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
@@ -153,7 +177,7 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java	(revision 37b48e11762edc8366d38405d9e8d738c9b8e39e)
-+++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java	(date 1641726097897)
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java	(date 1642496738192)
 @@ -15,6 +15,7 @@
   */
  package com.datastax.oss.driver.api.testinfra.ccm;
@@ -201,7 +225,7 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/test-infra/revapi.json b/test-infra/revapi.json
 --- a/test-infra/revapi.json	(revision 37b48e11762edc8366d38405d9e8d738c9b8e39e)
-+++ b/test-infra/revapi.json	(date 1641726097897)
++++ b/test-infra/revapi.json	(date 1642496738192)
 @@ -72,6 +72,16 @@
          "justification": "Method arguments were mistakenly annotated with @NonNull"
        },
@@ -219,3 +243,20 @@ diff --git a/test-infra/revapi.json b/test-infra/revapi.json
          "code": "java.method.parameterTypeParameterChanged",
          "old": "parameter com.datastax.oss.driver.api.testinfra.simulacron.QueryCounter.QueryCounterBuilder com.datastax.oss.driver.api.testinfra.simulacron.QueryCounter::builder(===com.datastax.oss.simulacron.server.BoundTopic===)",
          "new": "parameter com.datastax.oss.driver.api.testinfra.simulacron.QueryCounter.QueryCounterBuilder com.datastax.oss.driver.api.testinfra.simulacron.QueryCounter::builder(===com.datastax.oss.simulacron.server.BoundTopic<?, ?>===)",
+Index: integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java	(revision 37b48e11762edc8366d38405d9e8d738c9b8e39e)
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java	(date 1642496738192)
+@@ -58,7 +58,7 @@
+                   assertThat(broadcastAddress.getAddress()).isEqualTo(connectAddress.getAddress()));
+       assertThat(node.getListenAddress().get().getAddress()).isEqualTo(connectAddress.getAddress());
+       assertThat(node.getDatacenter()).isEqualTo("dc1");
+-      assertThat(node.getRack()).isEqualTo("r1");
++      assertThat(node.getRack()).isEqualTo("RAC1");
+       if (!CcmBridge.DSE_ENABLEMENT) {
+         // CcmBridge does not report accurate C* versions for DSE, only approximated values
+         assertThat(node.getCassandraVersion()).isEqualTo(ccmRule.getCassandraVersion());
