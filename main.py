@@ -8,15 +8,19 @@ logging.basicConfig(level=logging.INFO)
 
 
 def main(java_driver_git, scylla_install_dir, tests, versions, scylla_version):
-    results = []
-    for version in versions:
-        logging.info('=== JAVA DRIVER VERSION {} ==='.format(version))
-        results.append(run.Run(java_driver_git, scylla_install_dir, version, tests, scylla_version=scylla_version))
-
-    logging.info('=== JAVA DRIVER MATRIX RESULTS ===')
     status = 0
-    for result in results:
-        if not result.summary:
+    for version in versions:
+        logging.info("=== JAVA DRIVER VERSION %s ===", version)
+        report = run.Run(
+            java_driver_git=java_driver_git,
+            scylla_install_dir=scylla_install_dir,
+            tag=version,
+            tests=tests,
+            scylla_version=scylla_version).run()
+
+        logging.info("=== JAVA DRIVER MATRIX RESULTS FOR %s ===", version)
+        logging.info(", ".join(f"{key}: {value}" for key, value in report.summary.items()))
+        if report.is_failed:
             status = 1
     quit(status)
 

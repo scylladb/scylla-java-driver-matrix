@@ -1,18 +1,28 @@
 import logging
 import os
+import shutil
 import subprocess
+from distutils.util import strtobool
+from functools import cached_property
+from pathlib import Path
+
 import yaml
+
+from processjunit import ProcessJUnit
+
+DEV_MODE = bool(strtobool(os.environ.get("DEV_MODE", "False")))
 
 
 class Run:
     def __init__(self, java_driver_git, scylla_install_dir, tag, tests, scylla_version=None):
         self._tag = tag
-        self._java_driver_git = java_driver_git
+        self._java_driver_git = Path(java_driver_git)
         self._scylla_version = scylla_version
         self._scylla_install_dir = scylla_install_dir
         self._tests = tests
-        self._run()
-        self.summary = self._process_output()
+        self._report_path = self._java_driver_git / "integration-tests" / "target" / "surefire-reports"
+        if self._tag.startswith('3.7'):
+            self._report_path = self._java_driver_git / "driver-core" / "target" / "surefire-reports"
 
     def _setup_out_dir(self):
         here = os.path.dirname(__file__)
@@ -32,7 +42,8 @@ class Run:
             ignore_tests.extend(content['tests'])
         return set(ignore_tests)
 
-    def _environment(self):
+    @cached_property
+    def environment(self):
         result = {}
         result.update(os.environ)
         if self._scylla_version:
@@ -41,69 +52,56 @@ class Run:
             result['INSTALL_DIRECTORY'] = self._scylla_install_dir
         return result
 
+    def _run_command_in_shell(self, cmd: str):
+        logging.info("Execute the cmd '%s'", cmd)
+        with subprocess.Popen(cmd, shell=True, executable="/bin/bash", env=self.environment,
+                              cwd=self._java_driver_git, stderr=subprocess.PIPE) as proc:
+            stderr = proc.communicate()
+            status_code = proc.returncode
+        assert status_code == 0, stderr
+
     def _apply_patch(self):
-        here = os.path.dirname(__file__)
-        patch_file = os.path.join(here, 'versions', self._tag, 'patch')
-        if not os.path.exists(patch_file):
+        patch_file = Path(os.path.dirname(__file__)) / 'versions' / self._tag / 'patch'
+        if not patch_file.is_file():
             raise Exception('Cannot find patch for version {}'.format(self._tag))
-        subprocess.check_call(f"git apply --check {patch_file}", shell=True)
-        command = "patch -p1 -i {}".format(patch_file)
-        subprocess.check_call(command, shell=True)
+        self._run_command_in_shell(f"git apply --check {patch_file}")
+        self._run_command_in_shell(f"patch -p1 -i {patch_file}")
 
-    def _run(self):
-        os.chdir(self._java_driver_git)
-        subprocess.check_call('git checkout .', shell=True)
-        subprocess.check_call('git checkout {}'.format(self._tag), shell=True)
+    def run(self) -> ProcessJUnit:
+        self._run_command_in_shell("git checkout .")
+        self._run_command_in_shell(f"git checkout {self._tag}")
         self._apply_patch()
-        exclude_str = ''
-        for ignore_element in self._ignoreSet():
-            exclude_str += '!%s, ' % ignore_element
+        exclude_str = ', '.join(f"!{ignore_element}" for ignore_element in self._ignoreSet())
 
-        cmd = ["bash", "-c", "mvn  -B install -DskipTests=true -Dmaven.javadoc.skip=true -V"]
-        logging.info(cmd)
-        self.status = subprocess.run(cmd, env=self._environment(), cwd=self._java_driver_git)
+        logging.info("Formatting the Java-driver code after applying the patch")
+        self._run_command_in_shell("mvn com.coveo:fmt-maven-plugin:format")
+        logging.info("Starting build the version")
+        self._run_command_in_shell("mvn install -DskipTests=true -Dmaven.javadoc.skip=true -V")
 
-        if not self.status.returncode == 0:
-            logging.error("Build failed")
-            return
-
+        cmd = f"mvn -B -pl integration-tests -Dtest='{exclude_str}, {self._tests}' test"
         if self._tag.startswith('3.7'):
-            self._report_path =  "driver-core/target/surefire-reports/"
-            cmd = ["bash", "-c", "rm -rf {0}*".format(self._report_path)]
-            logging.info(cmd)
-            subprocess.run(cmd, env=self._environment(), cwd=self._java_driver_git)
-            if  self._scylla_version:
-                cmd = ["bash",  "-c",  "mvn -B -pl driver-core -Dtest.groups='long' -Dtest='{0}{self._tests}' test -Dscylla.version={self._scylla_version}".format(exclude_str, self=self)]
-            elif self._scylla_install_dir:
-                cmd = ["bash",  "-c",  "mvn -B -pl driver-core -Dtest.groups='long' -Dtest='{0}{self._tests}' test -Dccm.directory={self._scylla_install_dir}".format(exclude_str, self=self)]
-            else:
-                raise ValueError("No scylla version or cassaandra dir defined")
+            cmd = f"mvn -B -pl driver-core -Dtest.groups='long' -Dtest='{exclude_str}, {self._tests}' test"
 
-            logging.info(cmd)
-            self.status = subprocess.run(cmd, env=self._environment(), cwd=self._java_driver_git)
+        shutil.rmtree(self._report_path, ignore_errors=True)
+        if self._scylla_version:
+            cmd += f" -Dscylla.version={self._scylla_version}"
+        elif self._scylla_install_dir:
+            cmd += f" -Dccm.directory={self._scylla_install_dir}"
         else:
-            self._report_path = "integration-tests/target/surefire-reports/"
-            cmd = ["bash", "-c", "rm -rf {0}*".format(self._report_path)]
-            logging.info(cmd)
-            subprocess.run(cmd, env=self._environment(), cwd=self._java_driver_git)
+            raise ValueError("No scylla version or Cassandra dir defined")
 
-            if  self._scylla_version:
-                cmd = ["bash",  "-c",  "mvn -B -pl integration-tests -Dtest='{0}{self._tests}' test -Dscylla.version={self._scylla_version}".format(exclude_str, self=self)]
-            elif self._scylla_install_dir:
-                cmd = ["bash",  "-c",  "mvn -B -pl integration-tests -Dtest='{0}{self._tests}' test -Dccm.directory={self._scylla_install_dir}".format(exclude_str, self=self)]
-            else:
-                raise ValueError("No scylla version or cassaandra dir defined")
+        logging.info("Starting run the tests")
+        try:
+            self._run_command_in_shell(cmd)
+            logging.info("All tests are passed for '%s' version", self._tag)
+        except AssertionError:
+            # Some tests are failed
+            pass
 
-            logging.info(cmd)
-            self.status = subprocess.run(cmd, env=self._environment(), cwd=self._java_driver_git)
-
-    def _process_output(self):
-        subprocess.call(["bash", "-c", "mkdir -p ../{0} ;"
-                                       " rm ../{0}/* ;"
-                                       " mv {1}*.* ../{0}/".format(self._tag, self._report_path)],
-            universal_newlines=True, cwd=self._java_driver_git)
-
-        subprocess.call(["bash", "-c", "sed -i 's/com.datastax/{0}.com.datastax/' ../{0}/*.xml".format(self._tag)],
-                        universal_newlines=True, cwd=self._java_driver_git)
-
-        return self.status.returncode == 0
+        report = ProcessJUnit(
+            new_report_xml_path=self._java_driver_git.parent / f"TEST-{self._tag}.xml",
+            tests_result_path=self._report_path)
+        if not DEV_MODE:
+            logging.info("Removing all run's xml files of '%s' version", self._tag)
+            shutil.rmtree(self._report_path)
+        return report
