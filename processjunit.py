@@ -1,12 +1,16 @@
 import logging
+import os
+import shutil
 from ast import literal_eval
 from functools import cached_property, lru_cache
 from pathlib import Path
+from typing import Dict, Union
 from xml.etree import ElementTree
 
 
 class ProcessJUnit:
     def __init__(self, new_report_xml_path: Path, tests_result_path: Path):
+        new_report_xml_path.parent.mkdir(parents=True, exist_ok=True)
         self.report_path = new_report_xml_path
         self.tests_result_path = tests_result_path
         self._summary = {"time": 0.0, "tests": 0, "errors": 0, "skipped": 0, "failures": 0}
@@ -22,7 +26,7 @@ class ProcessJUnit:
             tree = ElementTree.parse(file_path)
             testsuite_element = next(tree.iter("testsuite"))
             for key in self._summary:
-                self._summary[key] += literal_eval(testsuite_element.attrib[key])
+                self._summary[key] += literal_eval(testsuite_element.attrib[key].replace(",", ""))
 
             if is_first_run:
                 is_first_run = False
@@ -44,9 +48,13 @@ class ProcessJUnit:
         with self.report_path.open(mode="w", encoding="utf-8") as file:
             file.write(ElementTree.tostring(element=new_tree, encoding="utf-8").decode())
 
+        if os.getenv("DEV_MODE", False):
+            shutil.rmtree(self.tests_result_path)
+
     @cached_property
-    def summary(self) -> dict[str, int]:
+    def summary(self) -> Dict[str, Union[int, float]]:
         self._create_report()
+        self._summary["time"] = round(self._summary["time"], 3)
         return self._summary
 
     @cached_property
