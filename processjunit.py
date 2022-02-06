@@ -45,7 +45,7 @@ class ProcessJUnit:
             file.write(ElementTree.tostring(element=new_tree, encoding="utf-8").decode())
 
     @cached_property
-    def summary(self) -> dict[str, int]:
+    def summary(self):
         self._create_report()
         return self._summary
 
