@@ -101,7 +101,4 @@ class Run:
         report = ProcessJUnit(
             new_report_xml_path=self._java_driver_git.parent / f"TEST-{self._tag}.xml",
             tests_result_path=self._report_path)
-        if not DEV_MODE:
-            logging.info("Removing all run's xml files of '%s' version", self._tag)
-            shutil.rmtree(self._report_path)
         return report

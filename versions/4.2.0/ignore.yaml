@@ -15,9 +15,17 @@ tests:
     - BatchStatementIT#should_execute_cas_batch
     - PreparedStatementIT#should_not_store_metadata_for_conditional_updates_in_legacy_protocol
 
-    # SyntaxError: line 1:0 no viable alternative at input 'CREATE'
-    - SchemaChangesIT
-    - DescribeIT
+    # java isn't supported for scylla user defined functions and aggregations
+    - SchemaChangesIT#should_handle_aggregate_creation
+    - SchemaChangesIT#should_handle_aggregate_drop
+    - SchemaChangesIT#should_handle_aggregate_update
+    - SchemaChangesIT#should_handle_function_creation
+    - SchemaChangesIT#should_handle_function_drop
+    - SchemaChangesIT#should_handle_function_update
+    - DescribeIT#create_schema_and_ensure_exported_cql_is_as_expected
+
+    # wrong case of NULL is returned in schema of MV
+    - SchemaChangesIT#should_handle_view_creation
 
     # RandomPartitioner isn't supported by scylla anymore
     - RandomTokenIT
@@ -36,6 +44,8 @@ tests:
     # init query OPTIONS: unexpected server error [PROTOCOL_ERROR] Unknown compression algorithm)
     - DirectCompressionIT#should_execute_queries_with_lz4_compression
     - DirectCompressionIT#should_execute_queries_with_snappy_compression
+    - HeapCompressionIT#should_execute_queries_with_lz4_compression
+    - HeapCompressionIT#should_execute_queries_with_snappy_compression
 
     # Cannot run program "*/java-driver/integration-tests/run.sh" (in directory "*/java-driver/integration-tests"): error=2, No such file or directory
     - CloudIT
@@ -60,3 +70,20 @@ tests:
     - OsgiShadedIT
     - OsgiSnappyIT
     - OsgiCustomLoadBalancingPolicyIT
+
+    # https://github.com/scylladb/scylla/issues/10008, scylla can return empty page, this test isn't expecting
+    - SelectOtherClausesIT#should_select_with_per_partition_limit
+
+    # pause/resume scylla doesn't immediately have schema disagreement
+    - SchemaAgreementIT#should_fail_on_timeout
+
+    # expecting scylla to report 3.11.0 as CQL version, scylla report 3.0.8 for now
+    - NodeMetadataIT#should_expose_node_metadata
+
+    # NodeStateListener isn't called with onRemove when node decommissioned
+    - RemovedNodeIT#should_signal_and_destroy_pool_when_node_gets_removed
+    # Scylla doesn't support customPayload in CQL
+    - BoundStatementCcmIT#should_propagate_attributes_when_preparing_a_simple_statement
+
+    # test wrongly assume all nodes are on 127.0.0.1 except node5 from dc2
+    - DefaultLoadBalancingPolicyIT#should_apply_node_filter
