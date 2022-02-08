@@ -22,6 +22,8 @@ def main(java_driver_git, scylla_install_dir, tests, versions, scylla_version):
         logging.info(", ".join(f"{key}: {value}" for key, value in report.summary.items()))
         if report.is_failed:
             status = 1
+        if not run.DEV_MODE:
+            report.clear_original_reports()
     quit(status)
 
 

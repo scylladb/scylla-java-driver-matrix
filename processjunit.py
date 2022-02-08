@@ -3,13 +3,15 @@ from ast import literal_eval
 from functools import cached_property, lru_cache
 from pathlib import Path
 from xml.etree import ElementTree
+import shutil
 
 
 class ProcessJUnit:
-    def __init__(self, new_report_xml_path: Path, tests_result_path: Path):
+    def __init__(self, new_report_xml_path: Path, tests_result_path: Path, tag: str):
         self.report_path = new_report_xml_path
         self.tests_result_path = tests_result_path
         self._summary = {"time": 0.0, "tests": 0, "errors": 0, "skipped": 0, "failures": 0}
+        self.tag = tag
 
     @lru_cache(maxsize=None)
     def _create_report(self):
@@ -32,6 +34,8 @@ class ProcessJUnit:
                 _ = [ElementTree.SubElement(new_properties_element, element.tag, attrib=element.attrib)
                      for element in properties_element]
             for testcase_parent_element in tree.iterfind("testcase"):
+                attrib = testcase_parent_element.attrib
+                attrib['classname'] = f"{self.tag}.{attrib['classname']}"
                 new_testcase_parent_element = ElementTree.SubElement(
                     new_tree, testcase_parent_element.tag, attrib=testcase_parent_element.attrib)
                 _ = [ElementTree.SubElement(new_testcase_parent_element, testcase_child_element.tag,
@@ -40,7 +44,9 @@ class ProcessJUnit:
 
         new_tree.attrib["name"] = self.report_path.stem
         new_tree.attrib.update({key: str(value) for key, value in self._summary.items()})
+        new_tree.attrib["time"] = f"{self._summary['time']:.3f}"
         logging.info("Creating a new report file in '%s' path", self.report_path)
+        self.report_path.parent.mkdir(exist_ok=True)
         with self.report_path.open(mode="w", encoding="utf-8") as file:
             file.write(ElementTree.tostring(element=new_tree, encoding="utf-8").decode())
 
@@ -52,3 +58,8 @@ class ProcessJUnit:
     @cached_property
     def is_failed(self) -> bool:
         return not (self.summary["tests"] and self.summary["errors"] == self.summary["failures"] == 0)
+
+    def clear_original_reports(self):
+        logging.info("Removing all run's xml files of '%s' version", self.tag)
+        shutil.rmtree(self.tests_result_path)
+
