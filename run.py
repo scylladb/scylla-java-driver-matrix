@@ -99,6 +99,7 @@ class Run:
             pass
 
         report = ProcessJUnit(
-            new_report_xml_path=self._java_driver_git.parent / f"TEST-{self._tag}.xml",
-            tests_result_path=self._report_path)
+            new_report_xml_path=Path(os.path.dirname(__file__)) / "reports" / f"TEST-{self._tag}.xml",
+            tests_result_path=self._report_path,
+            tag=self._tag)
         return report
