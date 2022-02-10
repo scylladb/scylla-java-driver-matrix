@@ -71,6 +71,12 @@ function check_directory_exists()
 check_directory_exists SCYLLA_JAVA_DRIVER_MATRIX_DIR
 check_directory_exists CCM_DIR
 
+# export all BUILD_* env vars into the docker run
+BUILD_OPTIONS=$(env | sed -n 's/^\(BUILD_[^=]\+\)=.*/--env \1/p')
+# export all JOB_* env vars into the docker run
+JOB_OPTIONS=$(env | sed -n 's/^\(JOB_[^=]\+\)=.*/--env \1/p')
+# export all AWS_* env vars into the docker run
+AWS_OPTIONS=$(env | sed -n 's/^\(AWS_[^=]\+\)=.*/--env \1/p')
 
 if [[ -z ${SCYLLA_VERSION} ]]; then
     # Use locally built scylla from source
@@ -120,6 +126,10 @@ docker_cmd="docker run --detach=true \
     -e LC_ALL=en_US.UTF-8 \
     -e NODE_TOTAL \
     -e NODE_INDEX \
+    -e WORKSPACE \
+    ${BUILD_OPTIONS} \
+    ${JOB_OPTIONS} \
+    ${AWS_OPTIONS} \
     -e _JAVA_OPTIONS=-Duser.home=$HOME \
     -w ${SCYLLA_JAVA_DRIVER_MATRIX_DIR} \
     -v /etc/passwd:/etc/passwd:ro \

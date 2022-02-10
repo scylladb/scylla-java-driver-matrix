@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{{ subject }}</title>
+    <style>
+        .blue   { color: blue; }
+        .fbold  { font-weight: bold; }
+        .red    { color: red; }
+        .green  { color: green; }
+        .tan    { color: tan; }
+        .lightgreen { color: #90EE90; }
+        .orange { color: orange; }
+        .black  { color: black; }
+        .fnormal { font-weight: normal; }
+        .notice { font-size:120%; }
+        .small { font-size:80%; }
+        #results_table {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+            width: 50%;
+        }
+        #results_table td, #results_table th {
+            border: 1px solid #ddd;
+            padding: 8px;
+
+        }
+        #results_table tr:nth-child(even){background-color: #f2f2f2;}
+        #results_table tr:hover {background-color: #ddd;}
+        #results_table th {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            text-align: left;
+            background-color: #85C1E9;
+            color: white;
+        }
+
+        .result_table {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+            vertical-align: top;
+            width: 50%;
+        }
+
+        .result_table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .longevity_run_failure_table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .longevity_result_runs {
+            vertical-align: top;
+        }
+
+        .result_table td, .result_table th {
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .result_table th {
+            padding: 8px;
+            text-align: center;
+            background-color: #85C1E9;
+            color: white;
+        }
+
+        .result_table_error {
+            padding: 8px;
+            text-align: center;
+            background-color: red;
+            color: white;
+        }
+
+        .divRow
+        {
+           display: block;
+           width: 100%;
+           border: 0 none;
+           padding: 0;
+           margin: 0;
+           border-bottom: 1px solid #ddd;
+           word-wrap: break-word;
+           white-space: nowrap;
+        }
+        .divCellLeft
+        {
+            display: inline-block;
+            width: 35%;
+            border-top: 0 none;
+            border-left: 0 none;
+            border-right: 1px solid #ddd;
+            border-bottom: 0 none;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            word-wrap: break-word;
+            white-space: nowrap;
+        }
+        .divCellRight
+        {
+            display: inline-block;
+            width: 65%;
+            border: 0 none;
+            text-align: left;
+            margin: 0;
+            padding: 0;
+            white-space: nowrap;
+
+        }
+
+    </style>
+</head>
+<body>
+
+{% block test_info %}
+    <h3>Test details</h3>
+    <div>
+        <ul>
+            {% if scylla_version %}
+            <li><span class="fbold">Scylla Version:</span> {{ scylla_version }}</li>
+            {% endif %}
+            {% if build_id %}
+            <li><span class="fbold">Build Id:</span> {{ build_id }}</li>
+            {% endif %}
+            {% if driver_remote %}
+            <li><span class="fbold">Driver repository:</span> {{ driver_remote }}</li>
+            {% endif %}
+            {% if start_time %}
+            <li><span class="fbold">Start time:</span> {{ start_time }}</li>
+            {% endif %}
+            {% if end_time %}
+            <li><span class="fbold">End time:</span> {{ end_time }}</li>
+            {% endif %}
+        </ul>
+    </div>
+{% endblock %}
+
+{% block test_results %}
+    <h3>
+        <span>Test result</span>
+    </h3>
+    {% for version, res in results.items() %}
+        <h4 class='fbold notice'>Driver version: {{ version }}</h4>
+        {% if res.tests %}
+
+            <table class='result_table'>
+                <tr>
+                    <th>Duration</th>
+                    <th>Total</th>
+                    <th>Passed</th>
+                    <th>Failures</th>
+                    <th>Errors</th>
+                    <th>Skipped</th>
+                </tr>
+                <tr>
+                    <td>{{ res.time }}</td>
+                    <td>{{ res.tests }}</td>
+                    <td>{{ res.tests - res.skipped - res.failures - res.errors }}</td>
+                    {% if res.failures == 0 %}
+                        <td>{{ res.failures }}</td>
+                    {% else %}
+                        <td class='result_table_error'>{{ res.failures }}</td>
+                    {% endif %}
+                    {% if res.errors == 0 %}
+                        <td>{{ res.errors }}</td>
+                    {% else %}
+                        <td class='result_table_error'>{{ res.errors }}</td>
+                    {% endif %}
+                    <td>{{ res.skipped }}</td>
+                </tr>
+            </table>
+        {% endif %}
+        {% if res.exception %}
+<pre class="red">
+{%- for line in res.exception -%}
+{{ line }}
+{%- endfor -%}
+</pre>
+        {% endif %}
+    {% endfor %}
+{% endblock %}
+
+{% block body %}
+{% endblock %}
+
+{% block links %}
+    <h3>Links:</h3>
+    <ul>
+        {% if build_url %}
+            <li><a href={{ build_url }}>Build URL</a></li>
+        {% endif %}
+    </ul>
+{% endblock %}
+</body>
+</html>

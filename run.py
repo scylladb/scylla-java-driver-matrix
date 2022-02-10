@@ -55,8 +55,8 @@ class Run:
     def _run_command_in_shell(self, cmd: str):
         logging.info("Execute the cmd '%s'", cmd)
         with subprocess.Popen(cmd, shell=True, executable="/bin/bash", env=self.environment,
-                              cwd=self._java_driver_git, stderr=subprocess.PIPE) as proc:
-            stderr = proc.communicate()
+                              cwd=self._java_driver_git, stderr=subprocess.PIPE, text=True) as proc:
+            _, stderr = proc.communicate()
             status_code = proc.returncode
         assert status_code == 0, stderr
 
