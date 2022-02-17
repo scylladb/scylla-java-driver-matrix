@@ -1,0 +1,82 @@
+diff --git c/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java w/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
+index f890b3447..042dfdbad 100644
+--- c/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
++++ w/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
+@@ -172,13 +172,17 @@ public class CCMBridge implements CCMAccess {
+     String installDirectory = System.getProperty("cassandra.directory");
+     String branch = System.getProperty("cassandra.branch");
+ 
++    String inputScyllaVersion = System.getProperty("scylla.version");
++
+     ImmutableSet.Builder<String> installArgs = ImmutableSet.builder();
+     if (installDirectory != null && !installDirectory.trim().isEmpty()) {
+       installArgs.add("--install-dir=" + new File(installDirectory).getAbsolutePath());
+     } else if (branch != null && !branch.trim().isEmpty()) {
+       installArgs.add("-v git:" + branch.trim().replaceAll("\"", ""));
+     } else {
+-      installArgs.add("-v " + inputCassandraVersion);
++      installArgs.add("--scylla");
++      installArgs.add("-v " + inputScyllaVersion);
++      installArgs.add("--id 0");
+     }
+ 
+     if (isDse()) {
+@@ -628,7 +632,7 @@ public class CCMBridge implements CCMAccess {
+     String remoteLogItf = ipOfNode(n) + ":" + TestUtils.findAvailablePort();
+     execute(
+         CCM_COMMAND
+-            + " add node%d -d dc%s -i %s%d -t %s -l %s --binary-itf %s -j %d -r %s -s -b"
++            + " add node%d --scylla -d dc%s -i %s%d -t %s -l %s --binary-itf %s -j %d -r %s -s -b"
+             + (isDSE ? " --dse" : ""),
+         n,
+         dc,
+@@ -717,7 +721,7 @@ public class CCMBridge implements CCMAccess {
+     final PrintWriter pw = new PrintWriter(sw);
+     closer.register(pw);
+     try {
+-      logger.trace("Executing: " + fullCommand);
++      logger.warn("Executing: " + fullCommand);
+       CommandLine cli = CommandLine.parse(fullCommand);
+       Executor executor = new DefaultExecutor();
+       LogOutputStream outStream =
+@@ -879,6 +883,9 @@ public class CCMBridge implements CCMAccess {
+       cassandraConfiguration.put("storage_port", RANDOM_PORT);
+       cassandraConfiguration.put("rpc_port", RANDOM_PORT);
+       cassandraConfiguration.put("native_transport_port", RANDOM_PORT);
++      cassandraConfiguration.put("api_port", RANDOM_PORT);
++      cassandraConfiguration.put("prometheus_port", RANDOM_PORT);
++      cassandraConfiguration.put("native_shard_aware_transport_port", RANDOM_PORT);
+     }
+ 
+     /**
+diff --git c/pom.xml w/pom.xml
+index 944e40986..deec3fa47 100644
+--- c/pom.xml
++++ w/pom.xml
+@@ -75,7 +75,7 @@
+         <!-- more recent versions of pax-exam require JDK7+ -->
+         <pax-exam.version>3.6.0</pax-exam.version>
+         <url.version>2.4.0</url.version>
+-        <testng.version>6.8.8</testng.version>
++        <testng.version>6.14.3</testng.version>
+         <assertj.version>1.7.0</assertj.version>
+         <mockito.version>1.10.8</mockito.version>
+         <wiremock.version>2.25.0</wiremock.version>
+@@ -728,7 +728,7 @@
+                 <plugin>
+                     <artifactId>maven-surefire-plugin</artifactId>
+                     <!-- do not upgrade until https://issues.apache.org/jira/browse/SUREFIRE-1302 is fixed -->
+-                    <version>2.18</version>
++                    <version>2.22.2</version>
+                     <configuration>
+                         <groups>${test.groups}</groups>
+                         <useFile>false</useFile>
+@@ -759,7 +759,7 @@
+                 <plugin>
+                     <artifactId>maven-failsafe-plugin</artifactId>
+                     <!-- do not upgrade until https://issues.apache.org/jira/browse/SUREFIRE-1302 is fixed -->
+-                    <version>2.18</version>
++                    <version>2.22.2</version>
+                     <configuration>
+                         <groups>${test.groups}</groups>
+                         <useFile>false</useFile>

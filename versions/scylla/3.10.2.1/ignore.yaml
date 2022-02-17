@@ -1,0 +1,6 @@
+tests:
+  - PreparedStatementTest#should_create_tombstone_when_null_value_on_bound_statement
+  - ReconnectionTest
+  - ReadWriteFailureExceptionTest
+  - SSLEncryptionTest
+  - SessionStressTest#sessions_should_not_leak_connections
