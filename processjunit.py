@@ -24,7 +24,7 @@ class ProcessJUnit:
             tree = ElementTree.parse(file_path)
             testsuite_element = next(tree.iter("testsuite"))
             for key in self._summary:
-                self._summary[key] += literal_eval(testsuite_element.attrib[key])
+                self._summary[key] += literal_eval(testsuite_element.attrib[key].replace(',', ''))
 
             if is_first_run:
                 is_first_run = False

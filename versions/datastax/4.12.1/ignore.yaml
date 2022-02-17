@@ -8,6 +8,14 @@ tests:
     - SelectIT
     - SetEntityIT
     - UpdateCustomIfClauseIT
+    - CustomResultTypeIT
+    - DeleteReactiveIT
+    - FluentEntityIT
+    - ImmutableEntityIT
+    - InsertReactiveIT
+    - SchemaValidationIT
+    - SelectReactiveIT
+    - UpdateReactiveIT
 
     # ServerError: Not implemented: LWT
     - QueryReturnTypesIT#should_execute_conditional_query_and_map_to_boolean
@@ -22,7 +30,9 @@ tests:
     - SchemaChangesIT#should_handle_function_creation
     - SchemaChangesIT#should_handle_function_drop
     - SchemaChangesIT#should_handle_function_update
-    - DescribeIT#create_schema_and_ensure_exported_cql_is_as_expected
+
+    # Unknown property 'additional_write_policy'
+    - DescribeIT
 
     # wrong case of NULL is returned in schema of MV
     - SchemaChangesIT#should_handle_view_creation
@@ -88,3 +98,43 @@ tests:
     # test wrongly assume all nodes are on 127.0.0.1 except node5 from dc2
     - DefaultLoadBalancingPolicyIT#should_apply_node_filter
 
+    - AddedNodeIT#should_signal_and_create_pool_when_node_gets_added
+
+    # scylla doesn't support protocol v5 yet
+    - ProtocolVersionInitialNegotiationIT#should_downgrade_to_v5_oss
+    - ProtocolVersionInitialNegotiationIT#should_not_downgrade_if_server_supports_latest_version_oss
+    - ProtocolVersionInitialNegotiationIT#should_use_explicitly_provided_v5_oss
+
+    - PreparedStatementIT#should_not_store_metadata_for_conditional_updates
+    - PreparedStatementIT#should_update_metadata_when_schema_changed_across_executions
+    - PreparedStatementIT#should_update_metadata_when_schema_changed_across_sessions
+
+    - DefaultReactiveResultSetIT#should_write_batch_cas
+    - DefaultReactiveResultSetIT#should_write_cas
+
+    - DriverExecutionProfileReloadIT
+    - SessionLeakIT#should_warn_when_session_count_exceeds_threshold
+
+    # expected "Undefined column name d" and got "Undefined name d"
+    - PreparedStatementIT#should_fail_to_reprepare_if_query_becomes_invalid
+
+    - PreparedStatementIT#should_not_store_metadata_for_conditional_updates
+    - PreparedStatementIT#should_update_metadata_when_schema_changed_across_executions
+    - PreparedStatementIT#should_update_metadata_when_schema_changed_across_sessions
+    -
+    # java.lang.IllegalArgumentException: Can't use per-request keyspace with protocol V4
+    - PerRequestKeyspaceIT#hould_execute_batch_with_explicit_keyspace
+    - PerRequestKeyspaceIT#should_execute_batch_with_inferred_keyspace
+    - PerRequestKeyspaceIT#should_execute_simple_statement_with_keyspace
+    - PerRequestKeyspaceIT#should_prepare_statement_with_keyspace
+    - PerRequestKeyspaceIT#should_reprepare_statement_with_keyspace_on_the_fly
+    - PreparedStatementIT#should_update_metadata_when_schema_changed_across_pages
+    - PerRequestKeyspaceIT#should_execute_batch_with_explicit_keyspace
+
+    # Undefined name coordinator_port in selection clause
+    - QueryTraceIT#should_fetch_trace_when_tracing_enabled
+    # java.util.NoSuchElementException: No value present
+    - SchemaIT#should_get_virtual_metadata
+    - SchemaIT#should_exclude_virtual_keyspaces_from_token_map
+
+    - NettyResourceLeakDetectionIT#should_not_leak_compressed_lz4

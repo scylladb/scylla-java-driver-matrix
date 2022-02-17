@@ -1,10 +1,13 @@
 import logging
 import os
+import re
 import shutil
 import subprocess
 from distutils.util import strtobool
 from functools import cached_property
 from pathlib import Path
+from typing import Set
+from packaging.version import Version
 
 import yaml
 
@@ -14,15 +17,17 @@ DEV_MODE = bool(strtobool(os.environ.get("DEV_MODE", "False")))
 
 
 class Run:
-    def __init__(self, java_driver_git, scylla_install_dir, tag, tests, scylla_version=None):
+    def __init__(self, java_driver_git, scylla_install_dir, tag, tests, driver_type, scylla_version=None):
         self._tag = tag
         self._java_driver_git = Path(java_driver_git)
         self._scylla_version = scylla_version
         self._scylla_install_dir = scylla_install_dir
         self._tests = tests
         self._report_path = self._java_driver_git / "integration-tests" / "target" / "surefire-reports"
-        if self._tag.startswith('3.7'):
+        if self._tag.startswith('3'):
             self._report_path = self._java_driver_git / "driver-core" / "target" / "surefire-reports"
+        self._root_path = Path(__file__).parent
+        self._driver_type = driver_type
 
     def _setup_out_dir(self):
         here = os.path.dirname(__file__)
@@ -31,16 +36,47 @@ class Run:
             os.makedirs(xunit_dir)
         return xunit_dir
 
-    def _ignoreFile(self):
-        here = os.path.dirname(__file__)
-        return os.path.join(here, 'versions', self._tag, 'ignore.yaml')
+    @cached_property
+    def version(self) -> str:
+        version = self._tag
+        if f"-scylla-" in version:
+            version = version.replace(f"-scylla-", ".")
+        return version
 
-    def _ignoreSet(self):
-        ignore_tests = []
-        with open(self._ignoreFile()) as f:
-            content = yaml.safe_load(f)
-            ignore_tests.extend(content['tests'])
-        return set(ignore_tests)
+    @cached_property
+    def version_folder(self) -> Path:
+        version_pattern = re.compile(r"(\d+.)+\d+$")
+        target_version_folder = self._root_path / "versions" / self._driver_type
+        driver_version_dir_path = target_version_folder / self.version
+        if driver_version_dir_path.is_dir():
+            logging.info("The full directory for '%s' tag is '%s'", self._tag, driver_version_dir_path)
+            return driver_version_dir_path
+
+        target_version = Version(self.version)
+        tags_defined = sorted(
+            (
+                Version(folder_path.name)
+                for folder_path in target_version_folder.iterdir() if version_pattern.match(folder_path.name)
+            ),
+            reverse=True
+        )
+        for tag in tags_defined:
+            if tag <= target_version:
+                logging.info("The full directory for '%s' tag is '%s'", self._tag, driver_version_dir_path)
+                return target_version_folder / str(tag)
+        else:
+            raise ValueError("Not found directory for python-driver version '%s'", self._tag)
+
+    @cached_property
+    def ignore_tests(self) -> Set[str]:
+        result = set()
+        ignore_file_path = self.version_folder / "ignore.yaml"
+        if not ignore_file_path.is_file():
+            return result
+        with (self.version_folder / "ignore.yaml").open(mode="r", encoding="utf-8") as file:
+            content = yaml.safe_load(file)
+            result.update(content['tests'])
+        return result
 
     @cached_property
     def environment(self):
@@ -60,27 +96,45 @@ class Run:
             status_code = proc.returncode
         assert status_code == 0, stderr
 
-    def _apply_patch(self):
-        patch_file = Path(os.path.dirname(__file__)) / 'versions' / self._tag / 'patch'
-        if not patch_file.is_file():
-            raise Exception('Cannot find patch for version {}'.format(self._tag))
-        self._run_command_in_shell(f"git apply --check {patch_file}")
-        self._run_command_in_shell(f"patch -p1 -i {patch_file}")
+    def _apply_patch_files(self) -> bool:
+        is_dir_empty = True
+        for file_path in self.version_folder.iterdir():
+            is_dir_empty = False
+            if file_path.name.startswith("patch"):
+                try:
+                    logging.info("Show patch's statistics for file '%s'", file_path)
+                    self._run_command_in_shell(f"git apply --stat {file_path}")
+                    logging.info("Detect patch's errors for file '%s'", file_path)
+                    self._run_command_in_shell(f"git apply -v --check {file_path}")
+                    logging.info("Applying patch file '%s'", file_path)
+                    self._run_command_in_shell(f"patch -p1 -i {file_path}")
+                except Exception as exc:
+                    logging.error("Failed to apply patch '%s' to version '%s', with: '%s'",
+                                  file_path, self._tag, str(exc))
+                    raise
+        if is_dir_empty:
+            logging.warning("The '%s' directory does not contain any files", self.version_folder)
 
     def run(self) -> ProcessJUnit:
         self._run_command_in_shell("git checkout .")
         self._run_command_in_shell(f"git checkout {self._tag}")
-        self._apply_patch()
-        exclude_str = ', '.join(f"!{ignore_element}" for ignore_element in self._ignoreSet())
+        self._apply_patch_files()
+
+        tests_string = self._tests
+        if exclude_str := ', '.join(f"!{ignore_element}" for ignore_element in self.ignore_tests):
+            tests_string = f"{exclude_str}, {tests_string}"
 
         logging.info("Formatting the Java-driver code after applying the patch")
         self._run_command_in_shell("mvn com.coveo:fmt-maven-plugin:format")
+
+        self._run_command_in_shell("mvn clean")
+
         logging.info("Starting build the version")
         self._run_command_in_shell("mvn install -DskipTests=true -Dmaven.javadoc.skip=true -V")
 
-        cmd = f"mvn -B -pl integration-tests -Dtest='{exclude_str}, {self._tests}' test"
-        if self._tag.startswith('3.7'):
-            cmd = f"mvn -B -pl driver-core -Dtest.groups='long' -Dtest='{exclude_str}, {self._tests}' test"
+        cmd = f"mvn -B -pl integration-tests -Dtest='{tests_string}' test"
+        if self._tag.startswith('3'):
+            cmd = f"mvn -B -pl driver-core -Dtest.groups='long' -Dtest='{tests_string}' test"
 
         shutil.rmtree(self._report_path, ignore_errors=True)
         if self._scylla_version:
