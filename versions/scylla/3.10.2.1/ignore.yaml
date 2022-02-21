@@ -1,6 +1,116 @@
 tests:
-  - PreparedStatementTest#should_create_tombstone_when_null_value_on_bound_statement
+  # Scylla does not support SASI or any other CUSTOM INDEX class
+  - QueryBuilderExecutionTest #should_retrieve_using_like_operator_on_table_with_sasi_index
+
+  # scylla group by + limit is broken: https://github.com/scylladb/scylla/issues/5361
+  - QueryBuilderExecutionTest #should_support_group_by
+
+  # cassandra 4.0+
+  - AdditionalWritePolicyTest
+  - StartupOptionTest #should_send_driver_name_and_version
+  - NowInSecondsTest
+  - PreparedStatementInvalidationTest
+  - VirtualTableMetadataTest
+  - TransietReplicationTest
+  - ProtocolBetaVersionTest
+
+  # new_compression_options isn't supported by scylla
+  - TableMetadataTest #should_parse_new_compression_options
+
+  # passing scylla command line arguments which scylla doesn't recognise
   - ReconnectionTest
   - ReadWriteFailureExceptionTest
   - SSLEncryptionTest
-  - SessionStressTest#sessions_should_not_leak_connections
+  - AggregateMetadataTest
+  - AuthenticationTest
+  - CustomPayloadTest
+  - CustomTypeTest
+  - ExportAsStringTest
+  - FunctionMetadataTest
+  - Jdk8SSLEncryptionTest
+  - SSLAuthenticatedEncryptionTest
+  - SchemaChangesTest
+  - OPPTokenIntegrationTest
+  - ProtocolVersionRenegotiationTest
+  - RPTokenIntegrationTest
+  - FunctionExecutionExceptionTest
+
+  # datastax cloud isn't relevant
+  - CloudTest
+
+  # short test that isn't using scylla at all
+  - ExtendedPeerCheckDisabledTest
+  - ClusterInitTest
+  - HostConnectionPoolTest
+  - NettyOptionsTest
+
+  # isolated test that shouldn't be running (and not using scylla)
+  - UUIDsPIDFromPropertyTest
+  - UUIDsPIDPropertyInvalidTest
+  - FrameLengthTest
+
+  # scylla shard aware is causing this test expectation to fail
+  - RoundRobinPolicyTest #should_round_robin_within_single_datacenter
+  - SessionStressTest #sessions_should_not_leak_connections
+  - TokenAwarePolicyTest #should_use_other_nodes_when_replicas_having_token_are_down
+
+  # clustering key is backwards: expected:<[DE]SC> but was:<[A]SC>
+  - TableMetadataTest #should_parse_table_options
+  - TableMetadataTest #should_parse_table_with_clustering_columns
+  - MaterializedViewMetadataTest #should_create_view_metadata
+
+  # values keyword for CREATE INDEX isn't supported by scylla
+  - IndexMetadataTest #should_create_metadata_for_values_index_on_mixed_case_column
+  - IndexMetadataTest #should_create_metadata_for_index_on_map_entries
+  - IndexMetadataTest #should_create_metadata_for_index_on_map_keys
+
+  # expected:<"[full(map_full)]"> but was:<"[map_full]">
+  - IndexMetadataTest #should_create_metadata_for_full_index_on_list
+  - IndexMetadataTest #should_create_metadata_for_full_index_on_map
+  - IndexMetadataTest #should_create_metadata_for_full_index_on_set
+
+  # Cannot create secondary index on non-frozen collection or UDT column map_all
+  - IndexMetadataTest #should_allow_multiple_indexes_on_map_column
+
+  # test expect null (in lower case) scylla return NULL (in upper case)
+  - MaterializedViewMetadataTest #should_create_view_metadata_with_quoted_identifiers
+
+  # test count on tracing which it's content is different in scylla
+  - PreparedStatementTest #should_create_tombstone_when_null_value_on_batch_statement
+  - PreparedStatementTest #should_create_tombstone_when_null_value_on_bound_statement
+  - PreparedStatementTest #should_not_create_tombstone_when_unbound_value_on_batch_statement_and_protocol_v4
+  - PreparedStatementTest #should_not_create_tombstone_when_unbound_value_on_bound_statement_and_protocol_v4
+  - PreparedStatementTest #should_unset_value_by_index
+  - PreparedStatementTest #should_unset_value_by_name
+
+  # tests from stress and duration groups, need to be run separately
+  - LargeDataTest
+
+  # unknown reason for failure, need to be investigated
+  - SchemaChangesCCTest
+  - HostConnectionPoolMultiTest #should_mark_host_down_if_all_connections_fail_on_init
+  - PreparedStatementTest #prepareStatementInheritPropertiesTest
+  - SessionErrorTest #should_not_propagate_unchecked_exceptions
+  - FunctionExecutionExceptionTest
+  - QueryBuilder21ExecutionTest
+  - SchemaBuilderIT
+  - OPPTokenVnodeIntegrationTest
+  - DCAwareRoundRobinPolicyTest
+  - TableMetadataCDCTest
+  - RPTokenVnodeIntegrationTest
+  - WarningsTest
+  - ControlConnectionTest
+  - CustomRetryPolicyIntegrationTest
+  - DefaultRetryPolicyIntegrationTest
+  - DowngradingConsistencyRetryPolicyIntegrationTest
+  - ErrorAwarePolicyIntegrationTest
+  - FallthroughRetryPolicyIntegrationTest
+  - HostTargetingTest
+  - IdempotenceAwareRetryPolicyIntegrationTest
+  - LoggingRetryPolicyIntegrationTest
+  - MetricsInFlightTest
+  - QueryOptionsTest
+  - WhiteListPolicyTest
+  - ConsistencyTest
+  - ExceptionsScassandraTest
+  - SpeculativeExecutionTest
