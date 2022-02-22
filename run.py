@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from distutils.util import strtobool
 from functools import cached_property
 from pathlib import Path
@@ -124,17 +125,18 @@ class Run:
         if exclude_str := ', '.join(f"!{ignore_element}" for ignore_element in self.ignore_tests):
             tests_string = f"{exclude_str}, {tests_string}"
 
+        no_tty = '' if sys.stdout.isatty() else '-B'
+
         logging.info("Formatting the Java-driver code after applying the patch")
-        self._run_command_in_shell("mvn com.coveo:fmt-maven-plugin:format")
+        self._run_command_in_shell(f"mvn {no_tty} com.coveo:fmt-maven-plugin:format")
 
-        self._run_command_in_shell("mvn clean")
-
+        self._run_command_in_shell(f"mvn {no_tty} clean")
         logging.info("Starting build the version")
-        self._run_command_in_shell("mvn install -DskipTests=true -Dmaven.javadoc.skip=true -V")
+        self._run_command_in_shell(f"mvn {no_tty} install -DskipTests=true -Dmaven.javadoc.skip=true -V")
 
-        cmd = f"mvn -B -pl integration-tests -Dtest='{tests_string}' test"
+        cmd = f"mvn {no_tty} -pl integration-tests -Dtest='{tests_string}' test"
         if self._tag.startswith('3'):
-            cmd = f"mvn -B -pl driver-core -Dtest.groups='long' -Dtest='{tests_string}' test"
+            cmd = f"mvn {no_tty} -pl driver-core -Dtest.groups='long' -Dtest='{tests_string}' test"
 
         shutil.rmtree(self._report_path, ignore_errors=True)
         if self._scylla_version:
