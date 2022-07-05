@@ -114,3 +114,6 @@ tests:
   - ConsistencyTest
   - ExceptionsScassandraTest
   - SpeculativeExecutionTest
+
+  # disable cause now CCM uses different ip address and port for the JMX
+  - CCMBridgeTest
