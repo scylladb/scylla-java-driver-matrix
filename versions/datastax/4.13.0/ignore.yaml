@@ -136,3 +136,5 @@ tests:
     # java.util.NoSuchElementException: No value present
     - SchemaIT#should_get_virtual_metadata
     - SchemaIT#should_exclude_virtual_keyspaces_from_token_map
+    # skipping cause of https://github.com/scylladb/scylla/issues/10956
+    - BoundStatementCcmIT#should_set_all_occurrences_of_variable
