@@ -138,3 +138,6 @@ tests:
     - SchemaIT#should_exclude_virtual_keyspaces_from_token_map
 
     - NettyResourceLeakDetectionIT#should_not_leak_compressed_lz4
+
+    # skipping cause of https://github.com/scylladb/scylla/issues/10956
+    - BoundStatementCcmIT#should_set_all_occurrences_of_variable
