@@ -53,7 +53,7 @@ def main(java_driver_git, scylla_install_dir, tests, versions, driver_type,scyll
 def extract_n_latest_repo_tags(repo_directory: str, major_versions: List[str], latest_tags_size: int = 2,
                                is_scylla_driver: bool = True) -> List[str]:
     major_versions = sorted(major_versions, key=lambda major_ver: float(major_ver))
-    filter_version = f"| grep {'' if is_scylla_driver else '-v '}scylla"
+    filter_version = f"| grep {'' if is_scylla_driver else '-v '}'.*\..*\..*\.'"
     commands = [f"cd {repo_directory}", "git checkout .", ]
     if not os.environ.get("DEV_MODE", False):
         commands.append("git fetch -p --all")
@@ -65,7 +65,7 @@ def extract_n_latest_repo_tags(repo_directory: str, major_versions: List[str], l
     lines = subprocess.check_output("\n".join(commands), shell=True).decode().splitlines()
     for repo_tag in lines:
         if "." in repo_tag:
-            version = tuple(repo_tag.split(".", maxsplit=2)[:2])
+            version = tuple(repo_tag.split(".", maxsplit=3)[:3])
             if version not in ignore_tags:
                 ignore_tags.add(version)
                 selected_tags.setdefault(repo_tag[0], []).append(repo_tag)

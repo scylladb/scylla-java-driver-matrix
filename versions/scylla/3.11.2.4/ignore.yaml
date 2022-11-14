@@ -1,0 +1,9 @@
+tests:
+  # test count on tracing which it's content is different in scylla, should be skipped on scylla
+  - PreparedStatementTest #should_create_tombstone_when_null_value_on_bound_statement
+
+  # disable cause now CCM uses different ip address and port for the JMX
+  - CCMBridgeTest
+
+  # using 2 node cluster, and stopping one, isn't supported by scylla since raft
+  - SchemaChangesCCTest #should_receive_changes_made_while_control_connection_is_down_on_reconnect

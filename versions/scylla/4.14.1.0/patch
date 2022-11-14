@@ -1,0 +1,60 @@
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+index 57f6f3e7c..4c8ed0295 100644
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+@@ -70,6 +70,8 @@ public class CcmBridge implements AutoCloseable {
+ 
+   public static final Boolean SCYLLA_ENABLEMENT = Boolean.getBoolean("ccm.scylla");
+ 
++  public static final String SCYLLA_VERSION = System.getProperty("scylla.version");
++
+   public static final Boolean SCYLLA_ENTERPRISE =
+       String.valueOf(VERSION.getMajor()).matches("\\d{4}");
+ 
+@@ -242,37 +244,6 @@ public class CcmBridge implements AutoCloseable {
+     }
+   }
+ 
+-  private String getCcmVersionString(Version version) {
+-    if (SCYLLA_ENABLEMENT) {
+-      // It seems that Scylla versions like 5.0-rc2 cannot be passed to CCM create options as
+-      // 5.0.0-rc2,
+-      // so we remove patch number from here.
+-      // Likewise, 2022.1.0-rc8 will be returned as 2022.1.rc8
+-      String versionString = version.toString();
+-      if (String.valueOf(version.getMajor()).matches("\\d{4}")) {
+-        versionString = versionString.replace(".0-", ".");
+-      } else {
+-        versionString = versionString.replace(".0-", "-");
+-      }
+-      return "release:" + versionString;
+-    }
+-    // for 4.0 pre-releases, the CCM version string needs to be "4.0-alpha1" or "4.0-alpha2"
+-    // Version.toString() always adds a patch value, even if it's not specified when parsing.
+-    if (version.getMajor() == 4
+-        && version.getMinor() == 0
+-        && version.getPatch() == 0
+-        && version.getPreReleaseLabels() != null) {
+-      // truncate the patch version from the Version string
+-      StringBuilder sb = new StringBuilder();
+-      sb.append(version.getMajor()).append('.').append(version.getMinor());
+-      for (String preReleaseString : version.getPreReleaseLabels()) {
+-        sb.append('-').append(preReleaseString);
+-      }
+-      return sb.toString();
+-    }
+-    return version.toString();
+-  }
+-
+   public void create() {
+     if (created.compareAndSet(false, true)) {
+       if (INSTALL_DIRECTORY != null) {
+@@ -281,7 +252,7 @@ public class CcmBridge implements AutoCloseable {
+         createOptions.add("-v git:" + BRANCH.trim().replaceAll("\"", ""));
+ 
+       } else {
+-        createOptions.add("-v " + getCcmVersionString(VERSION));
++        createOptions.add("-v " + SCYLLA_VERSION);
+       }
+       if (DSE_ENABLEMENT) {
+         createOptions.add("--dse");

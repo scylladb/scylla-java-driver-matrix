@@ -1,0 +1,64 @@
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+index c41aa0b27..0ce17ca1e 100644
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+@@ -72,6 +72,8 @@ public class CcmBridge implements AutoCloseable {
+   public static final Version VERSION =
+       Objects.requireNonNull(Version.parse(System.getProperty("ccm.version", "3.11.0")));
+ 
++  public static final String SCYLLA_VERSION = System.getProperty("scylla.version");
++  
+   public static final String INSTALL_DIRECTORY = System.getProperty("ccm.directory");
+ 
+   public static final String BRANCH = System.getProperty("ccm.branch");
+@@ -194,24 +196,6 @@ public class CcmBridge implements AutoCloseable {
+     }
+   }
+ 
+-  private String getCcmVersionString(Version version) {
+-    // for 4.0 pre-releases, the CCM version string needs to be "4.0-alpha1" or "4.0-alpha2"
+-    // Version.toString() always adds a patch value, even if it's not specified when parsing.
+-    if (version.getMajor() == 4
+-        && version.getMinor() == 0
+-        && version.getPatch() == 0
+-        && version.getPreReleaseLabels() != null) {
+-      // truncate the patch version from the Version string
+-      StringBuilder sb = new StringBuilder();
+-      sb.append(version.getMajor()).append('.').append(version.getMinor());
+-      for (String preReleaseString : version.getPreReleaseLabels()) {
+-        sb.append('-').append(preReleaseString);
+-      }
+-      return sb.toString();
+-    }
+-    return version.toString();
+-  }
+-
+   public void create() {
+     if (created.compareAndSet(false, true)) {
+       if (INSTALL_DIRECTORY != null) {
+@@ -220,7 +204,7 @@ public class CcmBridge implements AutoCloseable {
+         createOptions.add("-v git:" + BRANCH.trim().replaceAll("\"", ""));
+ 
+       } else {
+-        createOptions.add("-v " + getCcmVersionString(VERSION));
++        createOptions.add("-v " + SCYLLA_VERSION);
+       }
+       if (DSE_ENABLEMENT) {
+         createOptions.add("--dse");
+@@ -229,6 +213,7 @@ public class CcmBridge implements AutoCloseable {
+           "create",
+           CLUSTER_NAME,
+           "-i",
++          "--scylla",
+           ipPrefix,
+           "-n",
+           Arrays.stream(nodes).mapToObj(n -> "" + n).collect(Collectors.joining(":")),
+@@ -308,7 +293,7 @@ public class CcmBridge implements AutoCloseable {
+     if (getDseVersion().isPresent()) {
+       execute("add", "-i", ipPrefix + n, "-d", dc, "node" + n, "--dse");
+     } else {
+-      execute("add", "-i", ipPrefix + n, "-d", dc, "node" + n);
++      execute("add", "--scylla", "-i", ipPrefix + n, "-d", dc, "node" + n);
+     }
+     start(n);
+   }

@@ -78,6 +78,8 @@ JOB_OPTIONS=$(env | sed -n 's/^\(JOB_[^=]\+\)=.*/--env \1/p')
 # export all AWS_* env vars into the docker run
 AWS_OPTIONS=$(env | sed -n 's/^\(AWS_[^=]\+\)=.*/--env \1/p')
 
+DOCKER_CONFIG_MNT="-v $(eval echo ~${USER})/.docker:${HOME}/.docker"
+
 if [[ -z ${SCYLLA_VERSION} ]]; then
     # Use locally built scylla from source
 
@@ -115,9 +117,16 @@ else
 WORKSPACE_MNT=""
 fi
 
+group_args=()
+for gid in $(id -G); do
+    group_args+=(--group-add "$gid")
+done
+
+
 docker_cmd="docker run --detach=true \
     ${WORKSPACE_MNT} \
     ${DOCKER_COMMAND_PARAMS} \
+    ${DOCKER_CONFIG_MNT} \
     -v ${CCM_DIR}:${CCM_DIR} \
     -v ${SCYLLA_JAVA_DRIVER_MATRIX_DIR}:${SCYLLA_JAVA_DRIVER_MATRIX_DIR} \
     -e HOME \
@@ -129,9 +138,12 @@ docker_cmd="docker run --detach=true \
     ${JOB_OPTIONS} \
     ${AWS_OPTIONS} \
     -w ${SCYLLA_JAVA_DRIVER_MATRIX_DIR} \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
     -v /etc/passwd:/etc/passwd:ro \
     -v /etc/group:/etc/group:ro \
     -u $(id -u ${USER}):$(id -g ${USER}) \
+    ${group_args[@]} \
     --tmpfs ${HOME}/.cache \
     -v ${HOME}/.local:${HOME}/.local \
     -v ${HOME}/.ccm:${HOME}/.ccm \
