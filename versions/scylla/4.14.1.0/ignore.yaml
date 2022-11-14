@@ -1,0 +1,3 @@
+tests:
+  # skipping cause of https://github.com/scylladb/scylla/issues/10956
+  - BoundStatementCcmIT#should_set_all_occurrences_of_variable
