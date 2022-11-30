@@ -101,12 +101,11 @@ if [[ -z ${SCYLLA_VERSION} ]]; then
     "
 else
     # Use locally built scylla with relocatable package
-    DOCKER_COMMAND_PARAMS="
-    -e SCYLLA_VERSION \
-    -e SCYLLA_CORE_PACKAGE \
-    -e SCYLLA_JAVA_TOOLS_PACKAGE \
-    -e SCYLLA_JMX_PACKAGE
-    "
+
+    # export all SCYLLA_* env vars into the docker run
+    SCYLLA_OPTIONS=$(env | sed -n 's/^\(SCYLLA_[^=]\+\)=.*/--env \1/p')
+
+    DOCKER_COMMAND_PARAMS="${SCYLLA_OPTIONS}"
 fi
 
 # if in jenkins also mount the workspace into docker
