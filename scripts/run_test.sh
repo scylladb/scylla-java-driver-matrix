@@ -122,14 +122,12 @@ docker_cmd="docker run --detach=true \
     -v ${SCYLLA_JAVA_DRIVER_MATRIX_DIR}:${SCYLLA_JAVA_DRIVER_MATRIX_DIR} \
     -e HOME \
     -e SCYLLA_EXT_OPTS \
-    -e LC_ALL=en_US.UTF-8 \
     -e NODE_TOTAL \
     -e NODE_INDEX \
     -e WORKSPACE \
     ${BUILD_OPTIONS} \
     ${JOB_OPTIONS} \
     ${AWS_OPTIONS} \
-    -e _JAVA_OPTIONS=-Duser.home=$HOME \
     -w ${SCYLLA_JAVA_DRIVER_MATRIX_DIR} \
     -v /etc/passwd:/etc/passwd:ro \
     -v /etc/group:/etc/group:ro \
