@@ -1,0 +1,211 @@
+#!groovy
+// Pipeline java-driver-matrix-test
+// example: refs/heads/build-pipeline-into-scm
+
+Map modules = [:]
+pipeline {
+    parameters {
+        //Mandatory:
+        string(name: 'NODE_X86', defaultValue: 'ec2-fleet-x86', description: 'On which node to run. Useful options: gce-qavpc,gce2-qavpc,gce4-qavpc. packager machines are slower, but could be used:loki,dgccd201,thor,ran,sif,huginn,muninn')
+        //Have defaults:
+        string(name: 'SCYLLA_VERSIONS', defaultValue: '3', description: 'Scylla versions to check. If the value is a number - The newest major tag versions on which the tests will run (example: 4.1.0,4.2.0,4.3.0,4.12.0,4.13.0 - the versions chosen were 3.25.1 and 3.24.8) otherwise, the user needs to write the versions as a string with a comma (example:"3.25.1,3.24.1,3.24.3" or "3.25.1")')
+        string(name: 'DATASTAX_VERSIONS', defaultValue: '4', description: 'Datastax versions to check.  If the value is a number - The newest major tag versions on which the tests will run (example: 4.1.0,4.2.0,4.3.0,4.12.0,4.13.0 - the versions chosen were 3.25.1 and 3.24.8) otherwise, the user needs to write the versions as a string with a comma (example:"3.25.1,3.24.1,3.24.3" or "3.25.1")')
+        string(name: 'ARTIFACT_SOURCE_JOB_NAME', defaultValue: '', description: 'Build path to take artifacts from (usually next or build). Use this with ARTIFACT_SOURCE_BUILD_NUM to get reloc from jenkins, or ARTIFACT_WEB_URL to take them from cloud.')
+        string(name: 'ARTIFACT_SOURCE_BUILD_NUM', defaultValue: '', description: 'Build number to take artifacts from. Leave empty to use last available build. Use with ARTIFACT_SOURCE_JOB_NAME to take artifacts from Jenkins, or ARTIFACT_WEB_URL to take them from cloud.')
+        string(name: 'ARTIFACT_WEB_URL', defaultValue: 'latest', description: 'URL to take reloc items from. Use when reloc is not available on jenkins, or when running on AWS, which will download faster from S3.')
+        string(name: 'SCYLLA_CCM_BRANCH', defaultValue: '', description: 'git branch or sha for CCM. i.e. branch-3.1, master or a sha')
+        string(name: 'JAVA_DRIVER_MATRIX_REPO', defaultValue: '',  description: 'Repo or fork. If empty - will take scylla-java-driver-matrix repo (examples: git@github.com:scylladb/scylla-java-driver-matrix, git@github.com:Orenef11/scylla-java-driver-matrix)')
+        string(name: 'JAVA_DRIVER_MATRIX_BRANCH', defaultValue: '', description: 'git branch or sha for java driver matrix. i.e. branch-3.1. master or a sha')
+        string(name: 'DATASTAX_JAVA_DRIVER_REPO', defaultValue: '', description: 'git repo of java-driver, if empty defaults to datastax repo')
+        string(name: 'SCYLLA_JAVA_DRIVER_REPO', defaultValue: '', description: 'git repo of java-driver, if empty defaults to scylla repo')
+        string(name: 'RELENG_REPO', defaultValue: '', description: 'Branch of pkg repo or fork. If empty - will take scylla-pkg repo (examples: git@github.com:scylladb/scylla-pkg, git@github.com:scylladb/scylla-enterprise-pkg, git@github.com:hagitsegev/scylla-pkg)')
+        string(name: 'RELENG_BRANCH', defaultValue: '', description: 'Branch of pkg repo. If empty - will take master branch (master, branch-3.1)')
+        string(name: 'EMAIL_ADDRESS', defaultValue: 'qa@scylladb.com', description: 'The email address to send the report. If empty - will take qa@scylladb.com')
+        booleanParam(name: 'DRY_RUN', defaultValue: false, description: 'Set to test the pipeline code')
+        booleanParam(name: 'DEBUG_MAIL', defaultValue: false, description: 'Set to send mails to requester only')
+    }
+    agent {
+        label {
+            label env.NODE_X86
+        }
+    }
+
+    environment {
+      AWS_ACCESS_KEY_ID     = credentials('jenkins2-aws-secret-key-id')
+      AWS_SECRET_ACCESS_KEY = credentials('jenkins2-aws-secret-access-key')
+    }
+
+    options {
+        disableConcurrentBuilds()
+        timeout(time: 7, unit: 'HOURS')
+        buildDiscarder(
+    			logRotator(
+    				numToKeepStr: '10',
+    				daysToKeepStr: env.JOB_NAME.contains("releng-testing") ? '14': ''
+    			)
+    		)
+    }
+
+    stages {
+
+        stage ('Prepare') {
+            steps {
+                script {
+                   branchProperties = readProperties interpolate: true, file: 'scripts/jenkins-pipelines/branch-specific.properties'
+                   generalProperties = readProperties interpolate: true, file: 'scripts/jenkins-pipelines/general.properties'
+                   artifact = load "${generalProperties.groovyPath}/artifact.groovy"
+                   general = load "${generalProperties.groovyPath}/general.groovy"
+                   aws = load "${generalProperties.groovyPath}/aws.groovy"
+                   git = load "${generalProperties.groovyPath}/git.groovy"
+                   test = load "${generalProperties.groovyPath}/test.groovy"
+                   mail = load "${generalProperties.groovyPath}/mail.groovy"
+                   git.createGitProperties()
+                   gitProperties = readProperties file: generalProperties.gitPropertiesFileName
+                   echo "========= Git properties file: ==============="
+                   sh "cat ${generalProperties.gitPropertiesFileName}"
+                   echo "=============================================="
+
+                  artifactSourceJob = params.ARTIFACT_SOURCE_JOB_NAME ?: "${branchProperties.calledBuildsDir}${branchProperties.buildJobName}"
+                  testDone = false
+                  buildMode = "release"
+                  datastaxJavaDriverCheckoutDir="datastax-java-driver"
+                  scyllaJavaDriverCheckoutDir="scylla-java-driver"
+                  artifactSourceJobNum = params.ARTIFACT_SOURCE_BUILD_NUM ?: Jenkins.instance.getItemByFullName(artifactSourceJob).lastSuccessfulBuild.number.toString()
+                  paramArtifactWebUrl = params.ARTIFACT_WEB_URL ?: "latest"
+                  cloudUrl = artifact.getLastSuccessfulUrl (
+                    artifactWebUrl: paramArtifactWebUrl,
+                    artifactSourceJob: artifactSourceJob,
+                    artifactSourceJobNum: artifactSourceJobNum,
+                    fieldName: "reloc-pack-url:"
+                  )
+                  scyllaVersion = artifact.fetchMetadataValue (
+                    artifactSourceJob: artifactSourceJob,
+                    artifactSourceJobNum: artifactSourceJobNum,
+                    cloudUrl: cloudUrl,
+                    fieldName: "scylla-version:",
+                  )
+                  scyllaRelease = artifact.fetchMetadataValue (
+                    artifactSourceJob: artifactSourceJob,
+                    artifactSourceJobNum: artifactSourceJobNum,
+                    cloudUrl: cloudUrl,
+                    fieldName: "scylla-release:",
+                  )
+                }
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                script {
+                    ccmBranch    = params.SCYLLA_CCM_BRANCH ?: branchProperties.stableQABranchName
+                    javaDriverMatrixRepoUrl = params.JAVA_DRIVER_MATRIX_REPO ?: generalProperties.javaDriverMatrixRepoUrl
+                    scyllaJavaDriverMatrixBranch = params.JAVA_DRIVER_MATRIX_BRANCH ?: branchProperties.stableDriverMatrixBranchName
+                    datastaxJavaDriverRepo = params.DATASTAX_JAVA_DRIVER_REPO ?: "https://github.com/datastax/java-driver.git"
+                    scyllaJavaDriverRepo = params.SCYLLA_JAVA_DRIVER_REPO ?: "https://github.com/scylladb/java-driver.git"
+
+                    git.cleanWorkSpaceUponRequest()
+                    git.checkoutToDir (javaDriverMatrixRepoUrl, scyllaJavaDriverMatrixBranch, gitProperties.scyllaJavaDriverMatrixCheckoutDir)
+                    git.checkoutToDir (gitProperties.scyllaCcmRepoUrl, ccmBranch, gitProperties.scyllaCcmCheckoutDir)
+                    git.checkoutToDir (gitProperties.scyllaPkgRepoUrl, branchProperties.stableBranchName, gitProperties.scyllaPkgCheckoutDir)
+                    git.checkoutToDir (datastaxJavaDriverRepo, "3.x", datastaxJavaDriverCheckoutDir)
+                    git.checkoutToDir (scyllaJavaDriverRepo, "3.x", scyllaJavaDriverCheckoutDir)
+
+                    general.lsPath(WORKSPACE)
+                }
+            }
+        }
+
+        stage('Copy Artifacts') {
+          steps {
+            script {
+              artifact.getRelocArtifacts (
+                buildMode: buildMode,
+                cloudUrl: cloudUrl,
+                architecture: generalProperties.x86ArchName,
+              )
+            }
+          }
+        }
+
+        stage('Java Driver Matrix Test(datastax)') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    script {
+                        testDone = true
+                        test.doJavaDriverMatrixTest(
+                          dryRun: params.DRY_RUN,
+                          datastaxJavaDriverCheckoutDir: datastaxJavaDriverCheckoutDir,
+                          driverType: "datastax",
+                          javaDriverVersions: params.DATASTAX_VERSIONS,
+                          architecture: generalProperties.x86ArchName,
+                          email_recipients: params.EMAIL_ADDRESS,
+                          scyllaVersion: scyllaVersion,
+                          scyllaRelease: scyllaRelease,
+                        )
+                    }
+                }
+            }
+        }
+
+        stage('Java Driver Matrix Test(scylla)') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    script {
+                        testDone = true
+                        test.doJavaDriverMatrixTest(
+                          dryRun: params.DRY_RUN,
+                          datastaxJavaDriverCheckoutDir: scyllaJavaDriverCheckoutDir,
+                          driverType: "scylla",
+                          javaDriverVersions: params.SCYLLA_VERSIONS,
+                          architecture: generalProperties.x86ArchName,
+                          email_recipients: params.EMAIL_ADDRESS,
+                          scyllaVersion: scyllaVersion,
+                          scyllaRelease: scyllaRelease,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        //Order is: always, changed, fixed, regression, aborted, failure, success, unstable, and cleanup.
+        always {
+            script {
+              if (binding.hasVariable('initPipelineDone')) {
+                if (testDone && ! params.DRY_RUN) {
+                    publishStatus = artifact.publishArtifactsStatus("**/TEST-*.xml", WORKSPACE)
+                    xunit thresholds: [failed(unstableThreshold: '1'), skipped()],
+                          tools: [JUnit(pattern: '**/TEST-*.xml')]
+
+                    if (publishStatus) {
+                        error("Could not publish some item(s). See log for details")
+                    }
+                }
+                mail.mailIfError("$devAddress", "${currentBuild.currentResult}: $jobTitle", "${currentBuild.currentResult}: ${jobTitle}: $logText")
+              } else if (!(JOB_NAME.contains("releng-testing") || params.DRY_RUN || params.DEBUG_MAIL)) {
+                mail (
+                  to: params.EMAIL_ADDRESS,
+                  subject: "${currentBuild.currentResult}: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+                  body: "${env.JOB_NAME} [${env.BUILD_NUMBER}] ${currentBuild.currentResult} at the very beginning. Please see Jenkins logs for details"
+                )
+                cleanWs()
+              } else {
+                cleanWs()
+              }
+            }
+        }
+
+        fixed {
+            script {
+                mail.mailFixed("$devAddress", "Fixed ${currentBuild.currentResult}: $jobTitle", "Fixed ${currentBuild.currentResult}: ${jobTitle}: $logText")
+            }
+        }
+
+        cleanup {
+            script {
+                git.cleanWorkSpaceUponRequest()
+            }
+        }
+    }
+}
