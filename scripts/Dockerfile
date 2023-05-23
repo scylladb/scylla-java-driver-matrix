@@ -1,15 +1,16 @@
-FROM python:3.8-slim-buster
+FROM python:3.11-slim-buster
 
 RUN apt-get -y update \
-    # To install "java version 1.8" it is necessary to install the following dependence
-    && apt-get install -y software-properties-common \
-    && apt-add-repository 'deb http://security.debian.org/debian-security stretch/updates main' \
+    && apt-get install -y wget apt-transport-https \
+    && mkdir -p /etc/apt/keyrings \
+    && wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc \
+    && echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list \
     && apt-get -y update \
-    # Needs to install Java version 1.8 before installing maven. \
-    # Otherwise, the maven will install with a different Java version.
-    && apt-get install -y openjdk-8-jdk \
-    && apt-get install -y maven git \
+    && apt-get install -y  temurin-8-jdk maven git \
+    && apt-get install -y  temurin-11-jdk  \    
     && rm -rf /var/lib/apt/lists/*
+
+RUN echo 2 | update-alternatives --config java
 
 ADD requirements.txt requirements.txt
 RUN pip install -r requirements.txt
