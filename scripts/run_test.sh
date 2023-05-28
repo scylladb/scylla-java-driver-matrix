@@ -58,6 +58,7 @@ mkdir -p ${HOME}/.ccm
 mkdir -p ${HOME}/.m2
 mkdir -p ${HOME}/.local/lib
 mkdir -p ${HOME}/.config
+mkdir -p ${HOME}/.docker
 
 function check_directory_exists()
 {
@@ -123,7 +124,7 @@ for gid in $(id -G); do
 done
 
 
-docker_cmd="docker run --detach=true \
+docker_cmd="docker run --init --detach=true \
     ${WORKSPACE_MNT} \
     ${DOCKER_COMMAND_PARAMS} \
     ${DOCKER_CONFIG_MNT} \
@@ -131,8 +132,6 @@ docker_cmd="docker run --detach=true \
     -v ${SCYLLA_JAVA_DRIVER_MATRIX_DIR}:${SCYLLA_JAVA_DRIVER_MATRIX_DIR} \
     -e HOME \
     -e SCYLLA_EXT_OPTS \
-    -e NODE_TOTAL \
-    -e NODE_INDEX \
     -e WORKSPACE \
     ${BUILD_OPTIONS} \
     ${JOB_OPTIONS} \
@@ -148,8 +147,8 @@ docker_cmd="docker run --detach=true \
     -v ${HOME}/.local:${HOME}/.local \
     -v ${HOME}/.ccm:${HOME}/.ccm \
     -v ${HOME}/.m2:${HOME}/.m2 \
-    -v ${HOME}/.config:${HOME}/.config \
-    --network=bridge --privileged \
+    --tmpfs ${HOME}/.config \
+    --network=host --privileged \
     ${DOCKER_IMAGE} bash -c 'pip install --user -e ${CCM_DIR} ;  export PATH=\$PATH:\${HOME}/.local/bin; $*'"
 
 echo "Running Docker: $docker_cmd"
