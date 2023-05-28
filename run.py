@@ -122,8 +122,8 @@ class Run:
         self._apply_patch_files()
 
         tests_string = self._tests
-        if exclude_str := ', '.join(f"!{ignore_element}" for ignore_element in self.ignore_tests):
-            tests_string = f"{exclude_str}, {tests_string}"
+        if exclude_str := ','.join(f"!{ignore_element}" for ignore_element in self.ignore_tests):
+            tests_string = f"{exclude_str},{tests_string}"
 
         no_tty = '' if sys.stdout.isatty() else '-B'
 
