@@ -16,6 +16,8 @@ logging.basicConfig(level=logging.INFO)
 def main(java_driver_git, scylla_install_dir, tests, versions, driver_type,scylla_version, recipients):
     status = 0
     results = {}
+    logging.info("=== Going to test those versions: %s", versions)
+
     for version in versions:
         logging.info("=== JAVA DRIVER VERSION %s ===", version)
 
@@ -79,14 +81,13 @@ def extract_n_latest_repo_tags(repo_directory: str, major_versions: List[str], l
 
 
 if __name__ == '__main__':
-    versions = ['4.12.0', '4.13.0']
     parser = argparse.ArgumentParser()
     parser.add_argument('java_driver_git', help='folder with git repository of java-driver')
     parser.add_argument('scylla_install_dir',
                         help='folder with scylla installation, e.g. a checked out git scylla has been built',
                         nargs='?', default='')
-    parser.add_argument('--versions', default=versions,
-                        help='java-driver versions to test, default={}'.format(','.join(versions)))
+    parser.add_argument('--versions', default=[],
+                        help='java-driver versions to test')
     parser.add_argument('--tests', default='*',
                         help='tests to pass to nosetests tool, default=tests.integration.standard')
     parser.add_argument('--scylla-version', help="relocatable scylla version to use", default=os.environ.get('SCYLLA_VERSION', None))
@@ -100,13 +101,24 @@ if __name__ == '__main__':
                         type=int, default=None, nargs='?')
 
     arguments = parser.parse_args()
+    versions = []
+    _input_versions = []
     if not isinstance(arguments.versions, list):
-        versions = arguments.versions.split(',')
+        versions = _input_versions = arguments.versions.split(',')
 
     if arguments.version_size:
-        versions = extract_n_latest_repo_tags(arguments.java_driver_git, list({v.split('.')[0] for v in versions}),
+        # all one digit version, would be used to look up latest tags
+        versions = extract_n_latest_repo_tags(arguments.java_driver_git, list({v.split('.')[0] for v in _input_versions}),
                                               latest_tags_size=arguments.version_size,
                                               is_scylla_driver=arguments.driver_type == "scylla")
+
+        # if only one digit version specified, append few default version to test
+        if arguments.driver_type == "scylla" and (not _input_versions or all(len(v.split('.')) == 1 for v in _input_versions)):
+            versions += ['3.10.2-scylla-1', '3.7.1-scylla-2']
+
+        # add back all the full qualified versions specified in `--versions` (i.e. not one digit versions)
+        versions += [v for v in _input_versions if len(v.split('.')) > 1]
+
     main(java_driver_git=arguments.java_driver_git, scylla_install_dir=arguments.scylla_install_dir,
          tests=arguments.tests, versions=versions,
          scylla_version=arguments.scylla_version,
