@@ -189,3 +189,66 @@ index 5c7fc1fc4..cd47f02be 100644
  public class NettyOptionsTest extends CCMTestsSupport {
  
    @Test(groups = "short")
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java b/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
+index 96ccc4412..80f64109a 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
+@@ -24,6 +24,7 @@ package com.datastax.driver.core;
+ import static com.datastax.driver.core.Assertions.assertThat;
+ import static com.datastax.driver.core.CreateCCM.TestMode.PER_METHOD;
+ import static java.util.concurrent.TimeUnit.SECONDS;
++import static org.assertj.core.api.Assertions.assertThat;
+ import static org.mockito.Mockito.reset;
+ import static org.mockito.Mockito.spy;
+ import static org.mockito.Mockito.times;
+@@ -218,7 +219,10 @@ public class ReconnectionTest extends CCMTestsSupport {
+    * The connection established by a successful reconnection attempt should be reused in one of the
+    * connection pools (JAVA-505).
+    */
+-  @CCMConfig(dirtiesContext = true, createCluster = false)
++  @CCMConfig(
++      dirtiesContext = true,
++      createCluster = false,
++      jvmArgs = {"--smp", "1"})
+   @Test(groups = "long")
+   public void should_use_connection_from_reconnection_in_pool() {
+     TogglabePolicy loadBalancingPolicy = new TogglabePolicy(new RoundRobinPolicy());
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
+index aa0f57379..6eaa74e31 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
+@@ -19,6 +19,7 @@ import static com.datastax.driver.core.Assertions.assertThat;
+ import static com.datastax.driver.core.CreateCCM.TestMode.PER_METHOD;
+ import static com.google.common.collect.Lists.newArrayList;
+ import static java.util.concurrent.TimeUnit.MINUTES;
++import static org.assertj.core.api.Assertions.assertThat;
+ import static org.assertj.core.api.Assertions.fail;
+ 
+ import com.datastax.driver.core.exceptions.InvalidQueryException;
+@@ -27,7 +28,10 @@ import java.util.concurrent.TimeUnit;
+ import org.testng.annotations.Test;
+ 
+ @CreateCCM(PER_METHOD)
+-@CCMConfig(dirtiesContext = true, createCluster = false)
++@CCMConfig(
++    dirtiesContext = true,
++    createCluster = false,
++    jvmArgs = {"--smp", "1"})
+ public class SessionLeakTest extends CCMTestsSupport {
+ 
+   SocketChannelMonitor channelMonitor;
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
+index 25fde7d5d..d7f664c33 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
+@@ -38,7 +38,9 @@ import org.slf4j.LoggerFactory;
+ import org.testng.annotations.AfterMethod;
+ import org.testng.annotations.Test;
+ 
+-@CCMConfig(dirtiesContext = true)
++@CCMConfig(
++    dirtiesContext = true,
++    jvmArgs = {"--smp", "1"})
+ public class SessionStressTest extends CCMTestsSupport {
+ 
+   private static final Logger logger = LoggerFactory.getLogger(SessionStressTest.class);

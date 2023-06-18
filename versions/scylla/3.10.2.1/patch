@@ -1,7 +1,7 @@
-diff --git c/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java w/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
 index f890b3447..042dfdbad 100644
---- c/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
-+++ w/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
+--- a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
 @@ -172,13 +172,17 @@ public class CCMBridge implements CCMAccess {
      String installDirectory = System.getProperty("cassandra.directory");
      String branch = System.getProperty("cassandra.branch");
@@ -49,10 +49,61 @@ index f890b3447..042dfdbad 100644
      }
  
      /**
-diff --git c/pom.xml w/pom.xml
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
+index e7a62993b..a315cf347 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
+@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
+ import org.testng.annotations.AfterMethod;
+ import org.testng.annotations.Test;
+ 
++@CCMConfig(jvmArgs = {"--smp", "1"})
+ public class ClusterStressTest extends CCMTestsSupport {
+ 
+   private static final Logger logger = LoggerFactory.getLogger(ClusterStressTest.class);
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/PoolingOptionsIntegrationTest.java b/driver-core/src/test/java/com/datastax/driver/core/PoolingOptionsIntegrationTest.java
+index 7dc809d81..f480e6868 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/PoolingOptionsIntegrationTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/PoolingOptionsIntegrationTest.java
+@@ -28,7 +28,9 @@ import java.util.concurrent.TimeUnit;
+ import org.testng.annotations.AfterMethod;
+ import org.testng.annotations.Test;
+ 
+-@CCMConfig(createSession = false)
++@CCMConfig(
++    createSession = false,
++    jvmArgs = {"--smp", "1"})
+ public class PoolingOptionsIntegrationTest extends CCMTestsSupport {
+ 
+   private ThreadPoolExecutor executor;
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
+index cc6940575..c6e15b562 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
+@@ -20,6 +20,7 @@ import static com.datastax.driver.core.CreateCCM.TestMode.PER_METHOD;
+ import static com.datastax.driver.core.TestUtils.nonDebouncingQueryOptions;
+ import static com.google.common.collect.Lists.newArrayList;
+ import static java.util.concurrent.TimeUnit.MINUTES;
++import static org.assertj.core.api.Assertions.assertThat;
+ import static org.assertj.core.api.Assertions.fail;
+ 
+ import com.datastax.driver.core.exceptions.InvalidQueryException;
+@@ -28,7 +29,10 @@ import java.util.concurrent.TimeUnit;
+ import org.testng.annotations.Test;
+ 
+ @CreateCCM(PER_METHOD)
+-@CCMConfig(dirtiesContext = true, createCluster = false)
++@CCMConfig(
++    dirtiesContext = true,
++    createCluster = false,
++    jvmArgs = {"--smp", "1"})
+ public class SessionLeakTest extends CCMTestsSupport {
+ 
+   SocketChannelMonitor channelMonitor;
+diff --git a/pom.xml b/pom.xml
 index 944e40986..deec3fa47 100644
---- c/pom.xml
-+++ w/pom.xml
+--- a/pom.xml
++++ b/pom.xml
 @@ -75,7 +75,7 @@
          <!-- more recent versions of pax-exam require JDK7+ -->
          <pax-exam.version>3.6.0</pax-exam.version>
