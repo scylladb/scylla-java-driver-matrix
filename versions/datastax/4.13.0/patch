@@ -1,7 +1,7 @@
-diff --git c/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java w/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
 index 32e8c3929..292a8dfa5 100644
---- c/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
-+++ w/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
 @@ -58,7 +58,7 @@ public class NodeMetadataIT {
                    assertThat(broadcastAddress.getAddress()).isEqualTo(connectAddress.getAddress()));
        assertThat(node.getListenAddress().get().getAddress()).isEqualTo(connectAddress.getAddress());
@@ -11,10 +11,10 @@ index 32e8c3929..292a8dfa5 100644
        if (!CcmBridge.DSE_ENABLEMENT) {
          // CcmBridge does not report accurate C* versions for DSE, only approximated values
          assertThat(node.getCassandraVersion()).isEqualTo(ccmRule.getCassandraVersion());
-diff --git c/test-infra/revapi.json w/test-infra/revapi.json
+diff --git a/test-infra/revapi.json b/test-infra/revapi.json
 index 3cfbc8b53..0fa33a041 100644
---- c/test-infra/revapi.json
-+++ w/test-infra/revapi.json
+--- a/test-infra/revapi.json
++++ b/test-infra/revapi.json
 @@ -171,6 +171,16 @@
          "code": "java.method.removed",
          "old": "method void com.datastax.oss.driver.api.testinfra.ccm.CcmRule::reloadCore(int, java.lang.String, java.lang.String, boolean)",
@@ -32,10 +32,10 @@ index 3cfbc8b53..0fa33a041 100644
        }
      ]
    }
-diff --git c/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java w/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
 index c902434aa..0aa9bc8e1 100644
---- c/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
-+++ w/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
 @@ -18,10 +18,15 @@ package com.datastax.oss.driver.api.testinfra.ccm;
  import com.datastax.oss.driver.api.core.DefaultProtocolVersion;
  import com.datastax.oss.driver.api.core.ProtocolVersion;
@@ -66,10 +66,10 @@ index c902434aa..0aa9bc8e1 100644
    private Statement buildErrorStatement(
        Version requirement, String description, boolean lessThan, boolean dse) {
      return new Statement() {
-diff --git c/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java w/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
-index cef9e13c4..46f2a08ae 100644
---- c/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
-+++ w/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+index cef9e13c4..054c1e78e 100644
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 @@ -54,6 +54,10 @@ public class CcmBridge implements AutoCloseable {
    public static final Version VERSION =
        Objects.requireNonNull(Version.parse(System.getProperty("ccm.version", "4.0.0")));
@@ -160,7 +160,7 @@ index cef9e13c4..46f2a08ae 100644
        }
        if (getCassandraVersion().compareTo(Version.V2_2_0) >= 0) {
 -        execute("updateconf", "enable_user_defined_functions:true");
-+        execute("updateconf", "enable_user_defined_functions:true", "experimental:true");
++        execute("updateconf", "enable_user_defined_functions:true", "experimental_features:[udf]");
        }
 +
        if (DSE_ENABLEMENT) {
@@ -231,10 +231,10 @@ index cef9e13c4..46f2a08ae 100644
            cassandraConfiguration,
            dseConfiguration,
            dseRawYaml,
-diff --git c/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java w/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
 index 4ea1b3843..45029cc10 100644
---- c/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
-+++ w/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
 @@ -15,6 +15,7 @@
   */
  package com.datastax.oss.driver.api.testinfra.ccm;
@@ -275,10 +275,10 @@ index 4ea1b3843..45029cc10 100644
      public CustomCcmRule build() {
        return new CustomCcmRule(bridgeBuilder.build());
      }
-diff --git c/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java w/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
 index 96a0ac5fd..69ee3a550 100644
---- c/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
-+++ w/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
 @@ -24,12 +24,13 @@ public class DefaultCcmBridgeBuilderCustomizer {
    public static CcmBridge.Builder configureBuilder(CcmBridge.Builder builder) {
      if (!CcmBridge.DSE_ENABLEMENT
