@@ -147,6 +147,7 @@ docker_cmd="docker run --init --detach=true \
     -v ${HOME}/.local:${HOME}/.local \
     -v ${HOME}/.ccm:${HOME}/.ccm \
     -v ${HOME}/.m2:${HOME}/.m2 \
+    -v "/tmp":"/tmp" \
     --tmpfs ${HOME}/.config \
     --network=host --privileged \
     ${DOCKER_IMAGE} bash -c 'pip install --user -e ${CCM_DIR} ;  export PATH=\$PATH:\${HOME}/.local/bin; $*'"
