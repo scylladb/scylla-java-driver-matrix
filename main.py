@@ -112,10 +112,6 @@ if __name__ == '__main__':
                                               latest_tags_size=arguments.version_size,
                                               is_scylla_driver=arguments.driver_type == "scylla")
 
-        # if only one digit version specified, append few default version to test
-        if arguments.driver_type == "scylla" and (not _input_versions or all(len(v.split('.')) == 1 for v in _input_versions)):
-            versions += ['3.10.2-scylla-1', '3.7.1-scylla-2']
-
         # add back all the full qualified versions specified in `--versions` (i.e. not one digit versions)
         versions += [v for v in _input_versions if len(v.split('.')) > 1]
 
