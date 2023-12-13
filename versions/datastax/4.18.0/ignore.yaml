@@ -1,0 +1,143 @@
+tests:
+    # Unsupported CUSTOM INDEX class org.apache.cassandra.index.sasi.SASIIndex. Note that currently, Scylla does not support SASI or any other CUSTOM INDEX class.
+    - DeleteIT
+    - InsertIT
+    - GetEntityIT
+    - UpdateIT
+    - SelectCustomWhereClauseIT
+    - SelectIT
+    - SetEntityIT
+    - UpdateCustomIfClauseIT
+    - CustomResultTypeIT
+    - DeleteReactiveIT
+    - FluentEntityIT
+    - ImmutableEntityIT
+    - InsertReactiveIT
+    - SchemaValidationIT
+    - SelectReactiveIT
+    - UpdateReactiveIT
+
+    # ServerError: Not implemented: LWT
+    - QueryReturnTypesIT#should_execute_conditional_query_and_map_to_boolean
+    - QueryReturnTypesIT#should_execute_async_conditional_query_and_map_to_boolean
+    - BatchStatementIT#should_execute_cas_batch
+    - PreparedStatementIT#should_not_store_metadata_for_conditional_updates_in_legacy_protocol
+
+    # java isn't supported for scylla user defined functions and aggregations
+    - SchemaChangesIT#should_handle_aggregate_creation
+    - SchemaChangesIT#should_handle_aggregate_drop
+    - SchemaChangesIT#should_handle_aggregate_update
+    - SchemaChangesIT#should_handle_function_creation
+    - SchemaChangesIT#should_handle_function_drop
+    - SchemaChangesIT#should_handle_function_update
+
+    # Unknown property 'additional_write_policy'
+    - DescribeIT
+
+    # wrong case of NULL is returned in schema of MV
+    - SchemaChangesIT#should_handle_view_creation
+
+    # RandomPartitioner isn't supported by scylla anymore
+    - RandomTokenIT
+    - RandomTokenVnodesIT
+
+    # ByteOrderedPartitioner isn't supported by scylla anymore
+    - ByteOrderedTokenVnodesIT
+    - ByteOrderedTokenIT
+
+    # InvalidQueryException: Unknown type ks_17.address
+    - CaseSensitiveUdtIT#should_expose_metadata_with_correct_case
+
+    # ServerError: Can't find a column family with UUID 963ec1e0-1771-11ea-8115-000000000000
+    - CaseSensitiveUdtIT
+
+    # init query OPTIONS: unexpected server error [PROTOCOL_ERROR] Unknown compression algorithm)
+    - DirectCompressionIT#should_execute_queries_with_lz4_compression
+    - DirectCompressionIT#should_execute_queries_with_snappy_compression
+    - HeapCompressionIT#should_execute_queries_with_lz4_compression
+    - HeapCompressionIT#should_execute_queries_with_snappy_compression
+
+    # Cannot run program "*/java-driver/integration-tests/run.sh" (in directory "*/java-driver/integration-tests"): error=2, No such file or directory
+    - CloudIT
+
+    # ssl issue - init query OPTIONS: error writing )
+    - DefaultSslEngineFactoryIT
+    - DefaultSslEngineFactoryPropertyBasedWithClientAuthIT
+    - DefaultSslEngineFactoryWithClientAuthIT
+    - DefaultSslEngineFactoryHostnameValidationIT
+    - ProgrammaticSslIT
+    - DefaultSslEngineFactoryPropertyBasedIT
+
+    # error: unrecognised option '-Dcassandra.superuser_setup_delay_ms=0'
+    - PlainTextAuthProviderIT
+
+    # I don't know if scylla has the same thing for warnings, i.e. noticeable by the driver
+    - ExecutionInfoWarningsIT
+
+    # weird errors, would need to investigate further
+    - OsgiIT
+    - OsgiLz4IT
+    - OsgiShadedIT
+    - OsgiSnappyIT
+    - OsgiCustomLoadBalancingPolicyIT
+
+    # https://github.com/scylladb/scylla/issues/10008, scylla can return empty page, this test isn't expecting
+    - SelectOtherClausesIT#should_select_with_per_partition_limit
+
+    # pause/resume scylla doesn't immediately have schema disagreement
+    - SchemaAgreementIT#should_fail_on_timeout
+
+    # expecting scylla to report 3.11.0 as CQL version, scylla report 3.0.8 for now
+    - NodeMetadataIT#should_expose_node_metadata
+
+    # NodeStateListener isn't called with onRemove when node decommissioned
+    - RemovedNodeIT#should_signal_and_destroy_pool_when_node_gets_removed
+    # Scylla doesn't support customPayload in CQL
+    - BoundStatementCcmIT#should_propagate_attributes_when_preparing_a_simple_statement
+
+    # test wrongly assume all nodes are on 127.0.0.1 except node5 from dc2
+    - DefaultLoadBalancingPolicyIT#should_apply_node_filter
+
+    - AddedNodeIT#should_signal_and_create_pool_when_node_gets_added
+
+    # scylla doesn't support protocol v5 yet
+    - ProtocolVersionInitialNegotiationIT#should_downgrade_to_v5_oss
+    - ProtocolVersionInitialNegotiationIT#should_not_downgrade_if_server_supports_latest_version_oss
+    - ProtocolVersionInitialNegotiationIT#should_use_explicitly_provided_v5_oss
+
+    - PreparedStatementIT#should_not_store_metadata_for_conditional_updates
+    - PreparedStatementIT#should_update_metadata_when_schema_changed_across_executions
+    - PreparedStatementIT#should_update_metadata_when_schema_changed_across_sessions
+
+    - DefaultReactiveResultSetIT#should_write_batch_cas
+    - DefaultReactiveResultSetIT#should_write_cas
+
+    - DriverExecutionProfileReloadIT
+    - SessionLeakIT#should_warn_when_session_count_exceeds_threshold
+
+    # expected "Undefined column name d" and got "Undefined name d"
+    - PreparedStatementIT#should_fail_to_reprepare_if_query_becomes_invalid
+
+    - PreparedStatementIT#should_not_store_metadata_for_conditional_updates
+    - PreparedStatementIT#should_update_metadata_when_schema_changed_across_executions
+    - PreparedStatementIT#should_update_metadata_when_schema_changed_across_sessions
+    -
+    # java.lang.IllegalArgumentException: Can't use per-request keyspace with protocol V4
+    - PerRequestKeyspaceIT#hould_execute_batch_with_explicit_keyspace
+    - PerRequestKeyspaceIT#should_execute_batch_with_inferred_keyspace
+    - PerRequestKeyspaceIT#should_execute_simple_statement_with_keyspace
+    - PerRequestKeyspaceIT#should_prepare_statement_with_keyspace
+    - PerRequestKeyspaceIT#should_reprepare_statement_with_keyspace_on_the_fly
+    - PreparedStatementIT#should_update_metadata_when_schema_changed_across_pages
+    - PerRequestKeyspaceIT#should_execute_batch_with_explicit_keyspace
+
+    # Undefined name coordinator_port in selection clause
+    - QueryTraceIT#should_fetch_trace_when_tracing_enabled
+    # java.util.NoSuchElementException: No value present
+    - SchemaIT#should_get_virtual_metadata
+    - SchemaIT#should_exclude_virtual_keyspaces_from_token_map
+    # skipping cause of https://github.com/scylladb/scylla/issues/10956
+    - BoundStatementCcmIT#should_set_all_occurrences_of_variable
+    # Can't use nowInSeconds with protocol V4
+    - NowInSecondsIT
+
