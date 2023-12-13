@@ -1,8 +1,8 @@
 diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
-index 32e8c3929..292a8dfa5 100644
+index c7b51c040..ed202b1d4 100644
 --- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
 +++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
-@@ -58,7 +58,7 @@ public class NodeMetadataIT {
+@@ -61,7 +61,7 @@ public class NodeMetadataIT {
                    assertThat(broadcastAddress.getAddress()).isEqualTo(connectAddress.getAddress()));
        assertThat(node.getListenAddress().get().getAddress()).isEqualTo(connectAddress.getAddress());
        assertThat(node.getDatacenter()).isEqualTo("dc1");
@@ -33,21 +33,19 @@ index 3cfbc8b53..0fa33a041 100644
      ]
    }
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
-index d4830dd24..bce89823d 100644
+index b8b684ee5..c4c81bb46 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
-@@ -18,11 +18,18 @@ package com.datastax.oss.driver.api.testinfra.ccm;
+@@ -20,9 +20,16 @@ package com.datastax.oss.driver.api.testinfra.ccm;
  import com.datastax.oss.driver.api.core.DefaultProtocolVersion;
  import com.datastax.oss.driver.api.core.ProtocolVersion;
  import com.datastax.oss.driver.api.core.Version;
 +import com.datastax.oss.driver.api.core.metadata.EndPoint;
  import com.datastax.oss.driver.api.testinfra.CassandraResourceRule;
- import com.datastax.oss.driver.api.testinfra.requirement.BackendType;
- import com.datastax.oss.driver.api.testinfra.requirement.VersionRequirement;
+ import com.datastax.oss.driver.api.testinfra.requirement.BackendRequirementRule;
 +import com.datastax.oss.driver.internal.core.metadata.DefaultEndPoint;
 +
 +import java.net.InetSocketAddress;
- import java.util.Collection;
 +import java.util.Collections;
  import java.util.Optional;
 +import java.util.Set;
@@ -68,12 +66,12 @@ index d4830dd24..bce89823d 100644
 +
    @Override
    public Statement apply(Statement base, Description description) {
-     BackendType backend =
+     if (BackendRequirementRule.meetsDescriptionRequirements(description)) {
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
-index cef9e13c4..054c1e78e 100644
+index 5f845243b..11ea79782 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
-@@ -54,6 +54,10 @@ public class CcmBridge implements AutoCloseable {
+@@ -57,6 +57,10 @@ public class CcmBridge implements AutoCloseable {
    public static final Version VERSION =
        Objects.requireNonNull(Version.parse(System.getProperty("ccm.version", "4.0.0")));
  
@@ -84,7 +82,7 @@ index cef9e13c4..054c1e78e 100644
    public static final String INSTALL_DIRECTORY = System.getProperty("ccm.directory");
  
    public static final String BRANCH = System.getProperty("ccm.branch");
-@@ -120,7 +124,6 @@ public class CcmBridge implements AutoCloseable {
+@@ -123,7 +127,6 @@ public class CcmBridge implements AutoCloseable {
    private final Path configDirectory;
    private final AtomicBoolean started = new AtomicBoolean();
    private final AtomicBoolean created = new AtomicBoolean();
@@ -92,7 +90,7 @@ index cef9e13c4..054c1e78e 100644
    private final Map<String, Object> cassandraConfiguration;
    private final Map<String, Object> dseConfiguration;
    private final List<String> rawDseYaml;
-@@ -131,7 +134,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -134,7 +137,7 @@ public class CcmBridge implements AutoCloseable {
    private CcmBridge(
        Path configDirectory,
        int[] nodes,
@@ -101,7 +99,7 @@ index cef9e13c4..054c1e78e 100644
        Map<String, Object> cassandraConfiguration,
        Map<String, Object> dseConfiguration,
        List<String> dseConfigurationRawYaml,
-@@ -147,7 +150,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -150,7 +153,7 @@ public class CcmBridge implements AutoCloseable {
      } else {
        this.nodes = nodes;
      }
@@ -110,7 +108,7 @@ index cef9e13c4..054c1e78e 100644
      this.cassandraConfiguration = cassandraConfiguration;
      this.dseConfiguration = dseConfiguration;
      this.rawDseYaml = dseConfigurationRawYaml;
-@@ -193,24 +196,6 @@ public class CcmBridge implements AutoCloseable {
+@@ -196,24 +199,6 @@ public class CcmBridge implements AutoCloseable {
      }
    }
  
@@ -135,7 +133,7 @@ index cef9e13c4..054c1e78e 100644
    public void create() {
      if (created.compareAndSet(false, true)) {
        if (INSTALL_DIRECTORY != null) {
-@@ -219,7 +204,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -222,7 +207,7 @@ public class CcmBridge implements AutoCloseable {
          createOptions.add("-v git:" + BRANCH.trim().replaceAll("\"", ""));
  
        } else {
@@ -144,7 +142,7 @@ index cef9e13c4..054c1e78e 100644
        }
        if (DSE_ENABLEMENT) {
          createOptions.add("--dse");
-@@ -227,18 +212,20 @@ public class CcmBridge implements AutoCloseable {
+@@ -230,18 +215,20 @@ public class CcmBridge implements AutoCloseable {
        execute(
            "create",
            CLUSTER_NAME,
@@ -169,7 +167,7 @@ index cef9e13c4..054c1e78e 100644
        if (DSE_ENABLEMENT) {
          for (Map.Entry<String, Object> conf : dseConfiguration.entrySet()) {
            execute("updatedseconf", String.format("%s:%s", conf.getKey(), conf.getValue()));
-@@ -305,9 +292,9 @@ public class CcmBridge implements AutoCloseable {
+@@ -314,9 +301,9 @@ public class CcmBridge implements AutoCloseable {
  
    public void add(int n, String dc) {
      if (getDseVersion().isPresent()) {
@@ -181,7 +179,7 @@ index cef9e13c4..054c1e78e 100644
      }
      start(n);
    }
-@@ -323,6 +310,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -332,6 +319,7 @@ public class CcmBridge implements AutoCloseable {
              + " --config-dir="
              + configDirectory.toFile().getAbsolutePath();
  
@@ -189,7 +187,7 @@ index cef9e13c4..054c1e78e 100644
      execute(CommandLine.parse(command));
    }
  
-@@ -426,7 +414,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -473,7 +461,7 @@ public class CcmBridge implements AutoCloseable {
      private final Map<String, Object> dseConfiguration = new LinkedHashMap<>();
      private final List<String> dseRawYaml = new ArrayList<>();
      private final List<String> jvmArgs = new ArrayList<>();
@@ -198,7 +196,7 @@ index cef9e13c4..054c1e78e 100644
      private final List<String> createOptions = new ArrayList<>();
      private final List<String> dseWorkloads = new ArrayList<>();
  
-@@ -436,13 +424,13 @@ public class CcmBridge implements AutoCloseable {
+@@ -483,13 +471,13 @@ public class CcmBridge implements AutoCloseable {
        try {
          this.configDirectory = Files.createTempDirectory("ccm");
          // mark the ccm temp directories for deletion when the JVM exits
@@ -214,7 +212,7 @@ index cef9e13c4..054c1e78e 100644
      }
  
      public Builder withCassandraConfiguration(String key, Object value) {
-@@ -470,8 +458,8 @@ public class CcmBridge implements AutoCloseable {
+@@ -517,8 +505,8 @@ public class CcmBridge implements AutoCloseable {
        return this;
      }
  
@@ -225,7 +223,7 @@ index cef9e13c4..054c1e78e 100644
        return this;
      }
  
-@@ -523,7 +511,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -570,7 +558,7 @@ public class CcmBridge implements AutoCloseable {
        return new CcmBridge(
            configDirectory,
            nodes,
@@ -235,10 +233,10 @@ index cef9e13c4..054c1e78e 100644
            dseConfiguration,
            dseRawYaml,
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
-index 4ea1b3843..45029cc10 100644
+index 58bafd438..4dcec76b5 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
-@@ -15,6 +15,7 @@
+@@ -17,6 +17,7 @@
   */
  package com.datastax.oss.driver.api.testinfra.ccm;
  
@@ -246,7 +244,7 @@ index 4ea1b3843..45029cc10 100644
  import java.util.concurrent.atomic.AtomicReference;
  
  /**
-@@ -30,6 +31,8 @@ public class CustomCcmRule extends BaseCcmRule {
+@@ -32,6 +33,8 @@ public class CustomCcmRule extends BaseCcmRule {
  
    private static final AtomicReference<CustomCcmRule> CURRENT = new AtomicReference<>();
  
@@ -255,7 +253,7 @@ index 4ea1b3843..45029cc10 100644
    CustomCcmRule(CcmBridge ccmBridge) {
      super(ccmBridge);
    }
-@@ -62,6 +65,10 @@ public class CustomCcmRule extends BaseCcmRule {
+@@ -64,6 +67,10 @@ public class CustomCcmRule extends BaseCcmRule {
  
      private final CcmBridge.Builder bridgeBuilder = CcmBridge.builder();
  
@@ -266,7 +264,7 @@ index 4ea1b3843..45029cc10 100644
      public Builder withNodes(int... nodes) {
        bridgeBuilder.withNodes(nodes);
        return this;
-@@ -112,6 +119,11 @@ public class CustomCcmRule extends BaseCcmRule {
+@@ -114,6 +121,11 @@ public class CustomCcmRule extends BaseCcmRule {
        return this;
      }
  
@@ -279,10 +277,10 @@ index 4ea1b3843..45029cc10 100644
        return new CustomCcmRule(bridgeBuilder.build());
      }
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
-index 96a0ac5fd..69ee3a550 100644
+index ac2507cec..3708d3ca6 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
-@@ -24,12 +24,13 @@ public class DefaultCcmBridgeBuilderCustomizer {
+@@ -26,12 +26,13 @@ public class DefaultCcmBridgeBuilderCustomizer {
    public static CcmBridge.Builder configureBuilder(CcmBridge.Builder builder) {
      if (!CcmBridge.DSE_ENABLEMENT
          && CcmBridge.VERSION.nextStable().compareTo(Version.V4_0_0) >= 0) {
