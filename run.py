@@ -134,9 +134,9 @@ class Run:
         logging.info("Starting build the version")
         self._run_command_in_shell(f"mvn {no_tty} install -DskipTests=true -Dmaven.javadoc.skip=true -V")
 
-        cmd = f"mvn {no_tty} -pl integration-tests -Dtest='{tests_string}' test"
+        cmd = f"mvn {no_tty} -pl integration-tests -Dtest='{tests_string}' -Dfmt.skip=true -Dclirr.skip=true -Danimal.sniffer.skip=true test"
         if self._tag.startswith('3'):
-            cmd = f"mvn {no_tty} -pl driver-core -Dtest.groups='short,long' -Dtest='{tests_string}' test"
+            cmd = f"mvn {no_tty} -pl driver-core -P'short,long' -Dtest='{tests_string}' -Dfmt.skip=true -Dclirr.skip=true -Danimal.sniffer.skip=true test"
 
         shutil.rmtree(self._report_path, ignore_errors=True)
         if self._scylla_version:
