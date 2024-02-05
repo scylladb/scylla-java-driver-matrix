@@ -22,7 +22,7 @@ index 4c9ba61fc..3d0f4fa94 100644
      if (isDse()) {
        GLOBAL_DSE_VERSION_NUMBER = VersionNumber.parse(inputCassandraVersion);
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
-index f50dac1fb..8827950a0 100644
+index 74befba29..e5867e506 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
 @@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
@@ -175,7 +175,7 @@ index f44e64dca..aed5e394c 100644
        Uninterruptibles.getUninterruptibly(request.requestInitialized, 10, TimeUnit.SECONDS);
        request.simulateSuccessResponse();
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java b/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java
-index 5c7fc1fc4..cd47f02be 100644
+index fbdf187a7..dd1c34592 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java
 @@ -45,7 +45,9 @@ import org.mockito.stubbing.Answer;
@@ -190,7 +190,7 @@ index 5c7fc1fc4..cd47f02be 100644
  
    @Test(groups = "short")
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java b/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
-index 96ccc4412..80f64109a 100644
+index b3d6be0f3..30fafa527 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
 @@ -24,6 +24,7 @@ package com.datastax.driver.core;
@@ -238,7 +238,7 @@ index aa0f57379..6eaa74e31 100644
  
    SocketChannelMonitor channelMonitor;
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
-index 25fde7d5d..d7f664c33 100644
+index ea75f8454..ea70e9081 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
 @@ -38,7 +38,9 @@ import org.slf4j.LoggerFactory;
@@ -248,7 +248,7 @@ index 25fde7d5d..d7f664c33 100644
 -@CCMConfig(dirtiesContext = true)
 +@CCMConfig(
 +    dirtiesContext = true,
-+    jvmArgs = {"--smp", "1"})
++    jvmArgs = {"--smp", "1", "--max-networking-io-control-blocks", "15000"})
  public class SessionStressTest extends CCMTestsSupport {
  
    private static final Logger logger = LoggerFactory.getLogger(SessionStressTest.class);
