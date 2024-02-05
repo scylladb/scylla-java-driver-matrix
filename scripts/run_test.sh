@@ -132,6 +132,7 @@ docker_cmd="docker run --init --detach=true \
     -v ${SCYLLA_JAVA_DRIVER_MATRIX_DIR}:${SCYLLA_JAVA_DRIVER_MATRIX_DIR} \
     -e HOME \
     -e SCYLLA_EXT_OPTS \
+    -e JAVA_HOME='/usr/lib/jvm/temurin-8-jdk-amd64/'
     -e WORKSPACE \
     ${BUILD_OPTIONS} \
     ${JOB_OPTIONS} \
