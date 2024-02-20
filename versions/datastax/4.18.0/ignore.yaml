@@ -141,3 +141,6 @@ tests:
     # Can't use nowInSeconds with protocol V4
     - NowInSecondsIT
 
+    # V5 protocol checks are not supported in scylla
+    - ProtocolVersionInitialNegotiationIT#should_not_downgrade_if_server_supports_latest_version
+    - ProtocolVersionInitialNegotiationIT#should_use_explicitly_provided_v5
