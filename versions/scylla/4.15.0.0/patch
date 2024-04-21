@@ -1,3 +1,43 @@
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java
+index 52a5b6eef..139d26216 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java
+@@ -27,6 +27,7 @@ import com.datastax.oss.simulacron.common.cluster.QueryLog;
+ import com.datastax.oss.simulacron.server.BoundCluster;
+ import com.datastax.oss.simulacron.server.Server;
+ import java.util.concurrent.ExecutionException;
++import org.junit.After;
+ import org.junit.AfterClass;
+ import org.junit.BeforeClass;
+ import org.junit.Test;
+@@ -36,6 +37,7 @@ public class PeersV2NodeRefreshIT {
+ 
+   private static Server peersV2Server;
+   private static BoundCluster cluster;
++  private static CqlSession session;
+ 
+   @BeforeClass
+   public static void setup() {
+@@ -53,11 +55,17 @@ public class PeersV2NodeRefreshIT {
+     }
+   }
+ 
++  @After
++  public void closeSession() {
++    if (session != null) {
++      session.close();
++    }
++  }
++
+   @Test
+   public void should_successfully_send_peers_v2_node_refresh_query()
+       throws InterruptedException, ExecutionException {
+-    CqlSession session =
+-        CqlSession.builder().addContactPoint(cluster.node(1).inetSocketAddress()).build();
++    session = CqlSession.builder().addContactPoint(cluster.node(1).inetSocketAddress()).build();
+     Node node = findNonControlNode(session);
+     ((InternalDriverContext) session.getContext())
+         .getMetadataManager()
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
 index bb8d0b46d..02ee625cc 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
