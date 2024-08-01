@@ -145,6 +145,7 @@ docker_cmd="docker run --init --detach=true \
     -u $(id -u ${USER}):$(id -g ${USER}) \
     ${group_args[@]} \
     --tmpfs ${HOME}/.cache \
+    --tmpfs ${HOME}/.shiv \
     -v ${HOME}/.local:${HOME}/.local \
     -v ${HOME}/.ccm:${HOME}/.ccm \
     -v ${HOME}/.m2:${HOME}/.m2 \
