@@ -20,16 +20,15 @@ def main(java_driver_git, scylla_install_dir, tests, versions, driver_type,scyll
 
     for version in versions:
         logging.info("=== JAVA DRIVER VERSION %s ===", version)
-
-        try:
-            report = run.Run(
+        runner = run.Run(
                 java_driver_git=java_driver_git,
                 scylla_install_dir=scylla_install_dir,
                 tag=version,
                 tests=tests,
                 driver_type=driver_type,
-                scylla_version=scylla_version).run()
-
+                scylla_version=scylla_version)
+        try:
+            report = runner.run()
             logging.info("=== JAVA DRIVER MATRIX RESULTS FOR %s ===", version)
             logging.info(", ".join(f"{key}: {value}" for key, value in report.summary.items()))
             if report.is_failed:
@@ -42,7 +41,9 @@ def main(java_driver_git, scylla_install_dir, tests, versions, driver_type,scyll
             logging.exception(f"{version} failed")
             status = 1
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            results[version] = dict(exception=traceback.format_exception(exc_type, exc_value, exc_traceback))
+            failure_reason = traceback.format_exception(exc_type, exc_value, exc_traceback)
+            results[version] = dict(exception=failure_reason)
+            runner.create_metadata_for_failure(reason="\n".join(failure_reason))
 
     if recipients:
         email_report = create_report(results=results)
