@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -36,6 +37,10 @@ class Run:
         if not os.path.exists(xunit_dir):
             os.makedirs(xunit_dir)
         return xunit_dir
+
+    @property
+    def metadata_file_name(self) -> str:
+        return f'metadata_{self._tag}.json'
 
     @cached_property
     def version(self) -> str:
@@ -116,6 +121,18 @@ class Run:
         if is_dir_empty:
             logging.warning("The '%s' directory does not contain any files", self.version_folder)
 
+    def create_metadata_for_failure(self, reason: str) -> None:
+        reports_dir = Path(os.path.dirname(__file__)) / "reports"
+        if not reports_dir.exists():
+            reports_dir.mkdir(exist_ok=True, parents=True)
+        metadata_file = reports_dir / self.metadata_file_name
+        metadata = {
+            "driver_name": f"TEST-{self._tag}",
+            "driver_type": "java",
+            "failure_reason": reason,
+        }
+        metadata_file.write_text(json.dumps(metadata))
+
     def run(self) -> ProcessJUnit:
         self._run_command_in_shell("git checkout .")
         self._run_command_in_shell(f"git checkout {self._tag}")
@@ -153,9 +170,15 @@ class Run:
         except AssertionError:
             # Some tests are failed
             pass
-
+        metadata_file = Path(os.path.dirname(__file__)) / "reports" / self.metadata_file_name
+        metadata = {
+            "driver_name": f"TEST-{self._tag}",
+            "driver_type": "java",
+            "junit_result": f"./TEST-{self._tag}.xml",
+        }
         report = ProcessJUnit(
             new_report_xml_path=Path(os.path.dirname(__file__)) / "reports" / f"TEST-{self._tag}.xml",
             tests_result_path=self._report_path,
             tag=self._tag)
+        metadata_file.write_text(json.dumps(metadata))
         return report
