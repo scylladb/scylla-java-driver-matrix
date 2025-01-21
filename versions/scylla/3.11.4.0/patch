@@ -1,28 +1,293 @@
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMAccess.java b/driver-core/src/test/java/com/datastax/driver/core/CCMAccess.java
+index b6714f07f..8a91c6fb1 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/CCMAccess.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/CCMAccess.java
+@@ -54,6 +54,13 @@ public interface CCMAccess extends Closeable {
+    */
+   VersionNumber getDSEVersion();
+ 
++  /**
++   * Returns the Scylla version of this CCM cluster if this is a Scylla cluster, otherwise null.
++   *
++   * @return The version of this CCM cluster.
++   */
++  VersionNumber getScyllaVersion();
++
+   /** @return The config directory for this CCM cluster. */
+   File getCcmDir();
+ 
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
-index 4c9ba61fc5..3d0f4fa946 100644
+index 4c9ba61fc..62f674a88 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
-@@ -206,7 +206,7 @@ public class CCMBridge implements CCMAccess {
+@@ -194,6 +194,7 @@ public class CCMBridge implements CCMAccess {
+   static {
+     String inputCassandraVersion = System.getProperty("cassandra.version");
+     String inputScyllaVersion = System.getProperty("scylla.version");
++    GLOBAL_SCYLLA_VERSION_NUMBER = parseScyllaInputVersion(inputScyllaVersion);
+ 
+     String installDirectory = System.getProperty("cassandra.directory");
+     String branch = System.getProperty("cassandra.branch");
+@@ -206,8 +207,11 @@ public class CCMBridge implements CCMAccess {
        installArgs.add("-v git:" + branch.trim().replaceAll("\"", ""));
      } else if (inputScyllaVersion != null && !inputScyllaVersion.trim().isEmpty()) {
        installArgs.add(" --scylla ");
 -      installArgs.add("-v release:" + inputScyllaVersion);
-+      installArgs.add("-v " + inputScyllaVersion);
- 
+-
++      if (isVersionNumber(inputScyllaVersion)) {
++        installArgs.add("-v release:" + inputScyllaVersion);
++      } else {
++        installArgs.add("-v " + inputScyllaVersion);
++      }
        // Detect Scylla Enterprise - it should start with
        // a 4-digit year.
-@@ -246,7 +246,8 @@ public class CCMBridge implements CCMAccess {
+       if (inputScyllaVersion.matches("\\d{4}\\..*")) {
+@@ -246,8 +250,6 @@ public class CCMBridge implements CCMAccess {
      }
      ENVIRONMENT_MAP = ImmutableMap.copyOf(envMap);
  
 -    GLOBAL_SCYLLA_VERSION_NUMBER = VersionNumber.parse(inputScyllaVersion);
-+    GLOBAL_SCYLLA_VERSION_NUMBER =
-+        VersionNumber.parse("5.2"); // VersionNumber.parse(inputScyllaVersion);
- 
+-
      if (isDse()) {
        GLOBAL_DSE_VERSION_NUMBER = VersionNumber.parse(inputCassandraVersion);
+       GLOBAL_CASSANDRA_VERSION_NUMBER = CCMBridge.getCassandraVersion(GLOBAL_DSE_VERSION_NUMBER);
+@@ -338,12 +340,36 @@ public class CCMBridge implements CCMAccess {
+     return osName != null && osName.startsWith("Windows");
+   }
+ 
++  private static boolean isVersionNumber(String versionString) {
++    try {
++      VersionNumber.parse(versionString);
++    } catch (IllegalArgumentException e) {
++      return false;
++    }
++    return true;
++  }
++
++  private static VersionNumber parseScyllaInputVersion(String versionString) {
++    VersionNumber parsedScyllaVersionNumber = null;
++    try {
++      parsedScyllaVersionNumber = VersionNumber.parse(versionString);
++    } catch (IllegalArgumentException e) {
++      logger.warn(
++          "Failed to parse scylla.version: " + versionString + ". Trying to get it through CCM.",
++          e);
++      parsedScyllaVersionNumber = getScyllaVersionThroughCcm(versionString);
++    }
++    return parsedScyllaVersionNumber;
++  }
++
+   private final String clusterName;
+ 
+   private final VersionNumber cassandraVersion;
+ 
+   private final VersionNumber dseVersion;
+ 
++  private final VersionNumber scyllaVersion;
++
+   private final int storagePort;
+ 
+   private final int thriftPort;
+@@ -378,6 +404,7 @@ public class CCMBridge implements CCMAccess {
+       String clusterName,
+       VersionNumber cassandraVersion,
+       VersionNumber dseVersion,
++      VersionNumber scyllaVersion,
+       String ipPrefix,
+       int storagePort,
+       int thriftPort,
+@@ -391,6 +418,7 @@ public class CCMBridge implements CCMAccess {
+     this.clusterName = clusterName;
+     this.cassandraVersion = cassandraVersion;
+     this.dseVersion = dseVersion;
++    this.scyllaVersion = scyllaVersion;
+     this.ipPrefix = ipPrefix;
+     this.storagePort = storagePort;
+     this.thriftPort = thriftPort;
+@@ -465,6 +493,11 @@ public class CCMBridge implements CCMAccess {
+     return dseVersion;
+   }
+ 
++  @Override
++  public VersionNumber getScyllaVersion() {
++    return scyllaVersion;
++  }
++
+   @Override
+   public File getCcmDir() {
+     return ccmDir;
+@@ -792,7 +825,25 @@ public class CCMBridge implements CCMAccess {
+     execute(CCM_COMMAND + " node%d setworkload %s", node, workloadStr);
+   }
+ 
+-  private String execute(String command, Object... args) {
++  private static VersionNumber getScyllaVersionThroughCcm(String versionString) {
++    File configDir = Files.createTempDir();
++    try {
++      execute(configDir, "ccm create get_version -n 1 --scylla --version %s", versionString);
++      String versionOutput = execute(configDir, "ccm node1 versionfrombuild");
++      return VersionNumber.parse(versionOutput.replace("ccmout> ", "").trim());
++    } catch (RuntimeException cause) {
++      throw new RuntimeException(
++          "Error during getting Scylla version through ccm commands.", cause);
++    } finally {
++      try {
++        execute(configDir, "ccm remove get_version");
++      } catch (Exception ignored) {
++      }
++    }
++  }
++
++  private static String execute(File ccmDir, String command, Object... args) {
++    Logger logger = CCMBridge.logger;
+     String fullCommand = String.format(command, args) + " --config-dir=" + ccmDir;
+     Closer closer = Closer.create();
+     // 10 minutes timeout
+@@ -856,6 +907,10 @@ public class CCMBridge implements CCMAccess {
+     return sw.toString();
+   }
+ 
++  private String execute(String command, Object... args) {
++    return execute(this.ccmDir, command, args);
++  }
++
+   /**
+    * Waits for a host to be up by pinging the TCP socket directly, without using the Java driver's
+    * API.
+@@ -949,10 +1004,12 @@ public class CCMBridge implements CCMAccess {
+     private static final Pattern RANDOM_PORT_PATTERN = Pattern.compile(RANDOM_PORT);
+ 
+     private String ipPrefix = TestUtils.IP_PREFIX;
++    private String providedClusterName = null;
+     int[] nodes = {1};
+     private int[] jmxPorts = {};
+     private boolean start = true;
+     private boolean dse = isDse();
++    private boolean scylla = GLOBAL_SCYLLA_VERSION_NUMBER != null;
+     private boolean startSniProxy = false;
+     private VersionNumber version = null;
+     private final Set<String> createOptions = new LinkedHashSet<String>();
+@@ -991,6 +1048,15 @@ public class CCMBridge implements CCMAccess {
+       return this;
+     }
+ 
++    /**
++     * Builder takes care of naming and numbering clusters on its own. Use if you really need a
++     * specific name
++     */
++    public Builder withClusterName(String clusterName) {
++      this.providedClusterName = clusterName;
++      return this;
++    }
++
+     /** Enables SSL encryption. */
+     public Builder withSSL() {
+       cassandraConfiguration.put("client_encryption_options.enabled", "true");
+@@ -1035,8 +1101,8 @@ public class CCMBridge implements CCMAccess {
+     }
+ 
+     /**
+-     * The Cassandra or DSE version to use. If not specified the globally configured version is used
+-     * instead.
++     * The Cassandra or DSE or Scylla version to use. If not specified the globally configured
++     * version is used instead.
+      */
+     public Builder withVersion(VersionNumber version) {
+       this.version = version;
+@@ -1049,6 +1115,12 @@ public class CCMBridge implements CCMAccess {
+       return this;
+     }
+ 
++    /** Indicates whether or not this cluster is meant to be a Scylla cluster. */
++    public Builder withScylla(boolean scylla) {
++      this.scylla = scylla;
++      return this;
++    }
++
+     /**
+      * Free-form options that will be added at the end of the {@code ccm create} command (defaults
+      * to {@link #CASSANDRA_INSTALL_ARGS} if this is never called).
+@@ -1115,19 +1187,30 @@ public class CCMBridge implements CCMAccess {
+       // be careful NOT to alter internal state (hashCode/equals) during build!
+       String clusterName = TestUtils.generateIdentifier("ccm_");
+ 
++      if (providedClusterName != null) clusterName = providedClusterName;
++
+       VersionNumber dseVersion;
+       VersionNumber cassandraVersion;
++      VersionNumber scyllaVersion;
+       boolean versionConfigured = this.version != null;
+       // No version was explicitly provided, fallback on global config.
+       if (!versionConfigured) {
++        scyllaVersion = GLOBAL_SCYLLA_VERSION_NUMBER;
+         dseVersion = GLOBAL_DSE_VERSION_NUMBER;
+         cassandraVersion = GLOBAL_CASSANDRA_VERSION_NUMBER;
+       } else if (dse) {
+         // given version is the DSE version, base cassandra version on DSE version.
++        scyllaVersion = null;
+         dseVersion = this.version;
+         cassandraVersion = getCassandraVersion(dseVersion);
++      } else if (scylla) {
++        scyllaVersion = this.version;
++        dseVersion = null;
++        // Versions from 5.1 to 6.2.0 seem to report release_version 3.0.8 in system_local
++        cassandraVersion = VersionNumber.parse("3.0.8");
+       } else {
+         // given version is cassandra version.
++        scyllaVersion = null;
+         dseVersion = null;
+         cassandraVersion = this.version;
+       }
+@@ -1182,6 +1265,7 @@ public class CCMBridge implements CCMAccess {
+               clusterName,
+               cassandraVersion,
+               dseVersion,
++              scyllaVersion,
+               ipPrefix,
+               storagePort,
+               thriftPort,
+@@ -1391,6 +1475,7 @@ public class CCMBridge implements CCMAccess {
+ 
+       if (ipPrefix != builder.ipPrefix) return false;
+       if (dse != builder.dse) return false;
++      if (scylla != builder.scylla) return false;
+       if (!Arrays.equals(nodes, builder.nodes)) return false;
+       if (version != null ? !version.equals(builder.version) : builder.version != null)
+         return false;
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMCache.java b/driver-core/src/test/java/com/datastax/driver/core/CCMCache.java
+index 332907355..254e2cae1 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/CCMCache.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/CCMCache.java
+@@ -64,6 +64,11 @@ public class CCMCache {
+       return ccm.getDSEVersion();
+     }
+ 
++    @Override
++    public VersionNumber getScyllaVersion() {
++      return ccm.getScyllaVersion();
++    }
++
+     @Override
+     public File getCcmDir() {
+       return ccm.getCcmDir();
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMTestsSupport.java b/driver-core/src/test/java/com/datastax/driver/core/CCMTestsSupport.java
+index 6200fc233..a02efd416 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/CCMTestsSupport.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/CCMTestsSupport.java
+@@ -109,6 +109,11 @@ public class CCMTestsSupport {
+       return delegate.getDSEVersion();
+     }
+ 
++    @Override
++    public VersionNumber getScyllaVersion() {
++      return delegate.getScyllaVersion();
++    }
++
+     @Override
+     public InetSocketAddress addressOfNode(int n) {
+       return delegate.addressOfNode(n);
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
-index 74befba297..e5867e5067 100644
+index 74befba29..e5867e506 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
 @@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
@@ -34,7 +299,7 @@ index 74befba297..e5867e5067 100644
  
    private static final Logger logger = LoggerFactory.getLogger(ClusterStressTest.class);
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java b/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java
-index f44e64dca0..aed5e394c6 100644
+index f44e64dca..aed5e394c 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java
 @@ -597,7 +597,7 @@ public class HostConnectionPoolTest extends ScassandraTestBase.PerClassCluster {
@@ -175,7 +440,7 @@ index f44e64dca0..aed5e394c6 100644
        Uninterruptibles.getUninterruptibly(request.requestInitialized, 10, TimeUnit.SECONDS);
        request.simulateSuccessResponse();
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/LoadBalancingPolicyBootstrapTest.java b/driver-core/src/test/java/com/datastax/driver/core/LoadBalancingPolicyBootstrapTest.java
-index 09f8bf8edb..4f01cb47a6 100644
+index 09f8bf8ed..4f01cb47a 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/LoadBalancingPolicyBootstrapTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/LoadBalancingPolicyBootstrapTest.java
 @@ -104,8 +104,16 @@ public class LoadBalancingPolicyBootstrapTest extends CCMTestsSupport {
@@ -197,7 +462,7 @@ index 09f8bf8edb..4f01cb47a6 100644
        try {
          cluster.init();
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java b/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java
-index fbdf187a70..dd1c345929 100644
+index fbdf187a7..dd1c34592 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java
 @@ -45,7 +45,9 @@ import org.mockito.stubbing.Answer;
@@ -212,7 +477,7 @@ index fbdf187a70..dd1c345929 100644
  
    @Test(groups = "short")
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java b/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
-index b3d6be0f3c..30fafa5273 100644
+index b3d6be0f3..30fafa527 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
 @@ -24,6 +24,7 @@ package com.datastax.driver.core;
@@ -236,7 +501,7 @@ index b3d6be0f3c..30fafa5273 100644
    public void should_use_connection_from_reconnection_in_pool() {
      TogglabePolicy loadBalancingPolicy = new TogglabePolicy(new RoundRobinPolicy());
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
-index aa0f573795..6eaa74e318 100644
+index aa0f57379..6eaa74e31 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
 @@ -19,6 +19,7 @@ import static com.datastax.driver.core.Assertions.assertThat;
@@ -260,7 +525,7 @@ index aa0f573795..6eaa74e318 100644
  
    SocketChannelMonitor channelMonitor;
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
-index ea75f84544..ea70e9081a 100644
+index ea75f8454..ea70e9081 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
 @@ -38,7 +38,9 @@ import org.slf4j.LoggerFactory;
@@ -274,3 +539,24 @@ index ea75f84544..ea70e9081a 100644
  public class SessionStressTest extends CCMTestsSupport {
  
    private static final Logger logger = LoggerFactory.getLogger(SessionStressTest.class);
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/StateListenerTest.java b/driver-core/src/test/java/com/datastax/driver/core/StateListenerTest.java
+index eb77f2bf2..ab574d8a4 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/StateListenerTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/StateListenerTest.java
+@@ -52,7 +52,15 @@ public class StateListenerTest extends CCMTestsSupport {
+     ccm().start(1);
+     listener.waitForEvent();
+ 
+-    listener.setExpectedEvent(REMOVE);
++    // Different expectation for Scylla versions since 6.0.0 and 2024.2, both included
++    VersionNumber scyllaVer = ccm().getScyllaVersion();
++    if (scyllaVer != null
++        && ((scyllaVer.getMajor() >= 6 && scyllaVer.getMajor() <= 9)
++            || (scyllaVer.getMajor() >= 2024 && scyllaVer.getMinor() >= 2))) {
++      listener.setExpectedEvent(DOWN);
++    } else {
++      listener.setExpectedEvent(REMOVE);
++    }
+     ccm().decommission(2);
+     listener.waitForEvent();
+   }
