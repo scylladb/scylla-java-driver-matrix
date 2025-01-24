@@ -1,0 +1,349 @@
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java
+index d70c6d3fa..c9839c3b9 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java
+@@ -29,6 +29,7 @@ import com.datastax.oss.simulacron.common.cluster.QueryLog;
+ import com.datastax.oss.simulacron.server.BoundCluster;
+ import com.datastax.oss.simulacron.server.Server;
+ import java.util.concurrent.ExecutionException;
++import org.junit.After;
+ import org.junit.AfterClass;
+ import org.junit.BeforeClass;
+ import org.junit.Test;
+@@ -38,6 +39,7 @@ public class PeersV2NodeRefreshIT {
+ 
+   private static Server peersV2Server;
+   private static BoundCluster cluster;
++  private static CqlSession session;
+ 
+   @BeforeClass
+   public static void setup() {
+@@ -55,6 +57,13 @@ public class PeersV2NodeRefreshIT {
+     }
+   }
+ 
++  @After
++  public void closeSession() {
++    if (session != null) {
++      session.close();
++    }
++  }
++
+   @Test
+   public void should_successfully_send_peers_v2_node_refresh_query()
+       throws InterruptedException, ExecutionException {
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/ZeroTokenNodesIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/ZeroTokenNodesIT.java
+index 13405804a..c34d0739f 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/ZeroTokenNodesIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/ZeroTokenNodesIT.java
+@@ -42,7 +42,7 @@ public class ZeroTokenNodesIT {
+   public void should_not_ignore_zero_token_peer_when_option_is_enabled() {
+     CqlSession session = null;
+     CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
+-    try (CcmBridge ccmBridge = ccmBridgeBuilder.withNodes(3).withIpPrefix("127.0.1.").build()) {
++    try (CcmBridge ccmBridge = ccmBridgeBuilder.withNodes(3).withIdPrefix("1").build()) {
+       ccmBridge.create();
+       ccmBridge.startWithArgs("--wait-for-binary-proto");
+       ccmBridge.addWithoutStart(4, "dc1");
+@@ -72,7 +72,7 @@ public class ZeroTokenNodesIT {
+   public void should_not_discover_zero_token_DC_when_option_is_disabled() {
+     CqlSession session = null;
+     CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
+-    try (CcmBridge ccmBridge = ccmBridgeBuilder.withNodes(2, 2).withIpPrefix("127.0.1.").build()) {
++    try (CcmBridge ccmBridge = ccmBridgeBuilder.withNodes(2, 2).withIdPrefix("1").build()) {
+       ccmBridge.create();
+       ccmBridge.updateNodeConfig(3, "join_ring", false);
+       ccmBridge.updateNodeConfig(4, "join_ring", false);
+@@ -109,7 +109,7 @@ public class ZeroTokenNodesIT {
+   public void should_discover_zero_token_DC_when_option_is_enabled() {
+     CqlSession session = null;
+     CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
+-    try (CcmBridge ccmBridge = ccmBridgeBuilder.withNodes(2, 2).withIpPrefix("127.0.1.").build()) {
++    try (CcmBridge ccmBridge = ccmBridgeBuilder.withNodes(2, 2).withIdPrefix("1").build()) {
+       ccmBridge.create();
+       ccmBridge.updateNodeConfig(3, "join_ring", false);
+       ccmBridge.updateNodeConfig(4, "join_ring", false);
+@@ -150,7 +150,7 @@ public class ZeroTokenNodesIT {
+   public void should_connect_to_zero_token_contact_point() {
+     CqlSession session = null;
+     CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
+-    try (CcmBridge ccmBridge = ccmBridgeBuilder.withNodes(2).withIpPrefix("127.0.1.").build()) {
++    try (CcmBridge ccmBridge = ccmBridgeBuilder.withNodes(2).withIdPrefix("1").build()) {
+       ccmBridge.create();
+       ccmBridge.startWithArgs("--wait-for-binary-proto");
+       ccmBridge.addWithoutStart(3, "dc1");
+@@ -180,7 +180,7 @@ public class ZeroTokenNodesIT {
+     // method.
+     CqlSession session = null;
+     CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
+-    try (CcmBridge ccmBridge = ccmBridgeBuilder.withNodes(2, 2).withIpPrefix("127.0.1.").build()) {
++    try (CcmBridge ccmBridge = ccmBridgeBuilder.withNodes(2, 2).withIdPrefix("1").build()) {
+       ccmBridge.create();
+       ccmBridge.updateNodeConfig(3, "join_ring", false);
+       ccmBridge.updateNodeConfig(4, "join_ring", false);
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
+index 93ecbf181..ead5bd54d 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
+@@ -63,7 +63,7 @@ public class MockResolverIT {
+ 
+   @Test
+   public void should_connect_with_mocked_hostname() {
+-    CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder().withNodes(1).withIpPrefix("127.0.1.");
++    CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder().withNodes(1).withIdPrefix("1");
+     try (CcmBridge ccmBridge = ccmBridgeBuilder.build()) {
+       MultimapHostResolverProvider.removeResolverEntries("test.cluster.fake");
+       MultimapHostResolverProvider.addResolverEntry(
+@@ -119,7 +119,7 @@ public class MockResolverIT {
+     CqlSession session;
+ 
+     try (CcmBridge ccmBridge =
+-        CcmBridge.builder().withNodes(numberOfNodes).withIpPrefix("127.0.1.").build()) {
++        CcmBridge.builder().withNodes(numberOfNodes).withIdPrefix("1").build()) {
+       MultimapHostResolverProvider.removeResolverEntries("test.cluster.fake");
+       MultimapHostResolverProvider.addResolverEntry(
+           "test.cluster.fake", ccmBridge.getNodeIpAddress(1));
+@@ -175,7 +175,7 @@ public class MockResolverIT {
+       assertThat(filteredNodes).hasSize(1);
+     }
+     try (CcmBridge ccmBridge =
+-        CcmBridge.builder().withNodes(numberOfNodes).withIpPrefix("127.0.1.").build()) {
++        CcmBridge.builder().withNodes(numberOfNodes).withIdPrefix("1").build()) {
+       ccmBridge.create();
+       ccmBridge.start();
+       boolean allNodesUp = false;
+@@ -258,7 +258,7 @@ public class MockResolverIT {
+     CqlSession session;
+     Collection<Node> nodes;
+     Set<Node> filteredNodes;
+-    try (CcmBridge ccmBridge = CcmBridge.builder().withNodes(3).withIpPrefix("127.0.1.").build()) {
++    try (CcmBridge ccmBridge = CcmBridge.builder().withNodes(3).withIdPrefix("1").build()) {
+       MultimapHostResolverProvider.removeResolverEntries("test.cluster.fake");
+       MultimapHostResolverProvider.addResolverEntry(
+           "test.cluster.fake", ccmBridge.getNodeIpAddress(1));
+@@ -312,15 +312,17 @@ public class MockResolverIT {
+     int counter = 0;
+     while (filteredNodes.size() == 1) {
+       counter++;
+-      if (counter == 255) {
+-        LOG.error("Completed 254 runs. Breaking.");
++      // Capping to 99 in the patch because that's what ccm create --help says is the max id
++      // allowed
++      if (counter == 100) {
++        LOG.error("Completed 100 runs. Breaking.");
+         break;
+       }
+       LOG.warn(
+           "Launching another cluster until we lose resolved socket from metadata (run {}).",
+           counter);
+       try (CcmBridge ccmBridge =
+-          CcmBridge.builder().withNodes(3).withIpPrefix("127.0." + counter + ".").build()) {
++          CcmBridge.builder().withNodes(3).withIdPrefix("" + counter).build()) {
+         MultimapHostResolverProvider.removeResolverEntries("test.cluster.fake");
+         MultimapHostResolverProvider.addResolverEntry(
+             "test.cluster.fake", ccmBridge.getNodeIpAddress(1));
+@@ -374,7 +376,7 @@ public class MockResolverIT {
+       InetSocketAddress address = (InetSocketAddress) iterator.next().getEndPoint().resolve();
+       assertFalse(address.isUnresolved());
+     }
+-    try (CcmBridge ccmBridge = CcmBridge.builder().withNodes(3).withIpPrefix("127.1.1.").build()) {
++    try (CcmBridge ccmBridge = CcmBridge.builder().withNodes(3).withIdPrefix("1").build()) {
+       MultimapHostResolverProvider.removeResolverEntries("test.cluster.fake");
+       MultimapHostResolverProvider.addResolverEntry(
+           "test.cluster.fake", ccmBridge.getNodeIpAddress(1));
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
+index 2e137b085..6c311cd4f 100644
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
+@@ -26,13 +26,18 @@ package com.datastax.oss.driver.api.testinfra.ccm;
+ import com.datastax.oss.driver.api.core.DefaultProtocolVersion;
+ import com.datastax.oss.driver.api.core.ProtocolVersion;
+ import com.datastax.oss.driver.api.core.Version;
++import com.datastax.oss.driver.api.core.metadata.EndPoint;
+ import com.datastax.oss.driver.api.testinfra.CassandraResourceRule;
+ import com.datastax.oss.driver.api.testinfra.CassandraSkip;
+ import com.datastax.oss.driver.api.testinfra.ScyllaRequirement;
+ import com.datastax.oss.driver.api.testinfra.ScyllaSkip;
+ import com.datastax.oss.driver.api.testinfra.requirement.BackendRequirementRule;
++import com.datastax.oss.driver.internal.core.metadata.DefaultEndPoint;
++import java.net.InetSocketAddress;
++import java.util.Collections;
+ import java.util.Objects;
+ import java.util.Optional;
++import java.util.Set;
+ import org.junit.AssumptionViolatedException;
+ import org.junit.runner.Description;
+ import org.junit.runners.model.Statement;
+@@ -66,6 +71,13 @@ public abstract class BaseCcmRule extends CassandraResourceRule {
+     ccmBridge.remove();
+   }
+ 
++  @Override
++  public Set<EndPoint> getContactPoints() {
++    return Collections.singleton(
++        new DefaultEndPoint(
++            new InetSocketAddress(String.format("127.0.%s.1", ccmBridge.idPrefix), 9042)));
++  }
++
+   private Statement buildErrorStatement(
+       Version requirement, String description, boolean lessThan, boolean dse) {
+     return new Statement() {
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+index f49b7a9db..c86dc356e 100644
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+@@ -64,10 +64,16 @@ public class CcmBridge implements AutoCloseable {
+ 
+   public static final Boolean SCYLLA_ENABLEMENT = Boolean.getBoolean("ccm.scylla");
+ 
+-  public static final String CCM_VERSION_PROPERTY = System.getProperty("ccm.version", "4.0.0");
++  // public static final String CCM_VERSION_PROPERTY = System.getProperty("ccm.version", "4.0.0");
++  // Temporarily switch to scylla.version, since that's what java driver matrix right now uses:
++  public static final String CCM_VERSION_PROPERTY = System.getProperty("scylla.version", "4.0.0");
+ 
+   public static final Version VERSION = Objects.requireNonNull(parseCcmVersion());
+ 
++  public String idPrefix = "0";
++
++  public static final String SCYLLA_VERSION = System.getProperty("scylla.version");
++
+   public static final String INSTALL_DIRECTORY = System.getProperty("ccm.directory");
+ 
+   public static final String BRANCH = System.getProperty("ccm.branch");
+@@ -175,7 +181,6 @@ public class CcmBridge implements AutoCloseable {
+   private final Path configDirectory;
+   private final AtomicBoolean started = new AtomicBoolean();
+   private final AtomicBoolean created = new AtomicBoolean();
+-  private final String ipPrefix;
+   private final Map<String, Object> cassandraConfiguration;
+   private final Map<String, Object> dseConfiguration;
+   private final List<String> rawDseYaml;
+@@ -186,7 +191,7 @@ public class CcmBridge implements AutoCloseable {
+   private CcmBridge(
+       Path configDirectory,
+       int[] nodes,
+-      String ipPrefix,
++      String idPrefix,
+       Map<String, Object> cassandraConfiguration,
+       Map<String, Object> dseConfiguration,
+       List<String> dseConfigurationRawYaml,
+@@ -202,7 +207,7 @@ public class CcmBridge implements AutoCloseable {
+     } else {
+       this.nodes = nodes;
+     }
+-    this.ipPrefix = ipPrefix;
++    this.idPrefix = idPrefix;
+     this.cassandraConfiguration = cassandraConfiguration;
+     this.dseConfiguration = dseConfiguration;
+     this.rawDseYaml = dseConfigurationRawYaml;
+@@ -356,7 +361,7 @@ public class CcmBridge implements AutoCloseable {
+         createOptions.add("-v git:" + BRANCH.trim().replaceAll("\"", ""));
+ 
+       } else {
+-        createOptions.add("-v " + getCcmVersionString(CCM_VERSION_PROPERTY));
++        createOptions.add("-v " + getCcmVersionString(SCYLLA_VERSION));
+       }
+       if (DSE_ENABLEMENT) {
+         createOptions.add("--dse");
+@@ -367,8 +372,8 @@ public class CcmBridge implements AutoCloseable {
+       execute(
+           "create",
+           CLUSTER_NAME,
+-          "-i",
+-          ipPrefix,
++          "--id",
++          idPrefix,
+           "-n",
+           Arrays.stream(nodes).mapToObj(n -> "" + n).collect(Collectors.joining(":")),
+           createOptions.stream().collect(Collectors.joining(" ")));
+@@ -488,7 +493,7 @@ public class CcmBridge implements AutoCloseable {
+   }
+ 
+   public void addWithoutStart(int n, String dc) {
+-    String[] initialArgs = new String[] {"add", "-i", ipPrefix + n, "-d", dc, "node" + n};
++    String[] initialArgs = new String[] {"add", "-d", dc, "node" + n};
+     ArrayList<String> args = new ArrayList<>(Arrays.asList(initialArgs));
+     if (getDseVersion().isPresent()) {
+       args.add("--dse");
+@@ -613,7 +618,7 @@ public class CcmBridge implements AutoCloseable {
+   }
+ 
+   public String getNodeIpAddress(int nodeId) {
+-    return ipPrefix + nodeId;
++    return idPrefix + nodeId;
+   }
+ 
+   public static Builder builder() {
+@@ -626,7 +631,7 @@ public class CcmBridge implements AutoCloseable {
+     private final Map<String, Object> dseConfiguration = new LinkedHashMap<>();
+     private final List<String> dseRawYaml = new ArrayList<>();
+     private final List<String> jvmArgs = new ArrayList<>();
+-    private String ipPrefix = "127.0.0.";
++    private String idPrefix = "0";
+     private final List<String> createOptions = new ArrayList<>();
+     private final List<String> dseWorkloads = new ArrayList<>();
+ 
+@@ -670,8 +675,8 @@ public class CcmBridge implements AutoCloseable {
+       return this;
+     }
+ 
+-    public Builder withIpPrefix(String ipPrefix) {
+-      this.ipPrefix = ipPrefix;
++    public Builder withIdPrefix(String idPrefix) {
++      this.idPrefix = idPrefix;
+       return this;
+     }
+ 
+@@ -740,7 +745,7 @@ public class CcmBridge implements AutoCloseable {
+       return new CcmBridge(
+           configDirectory,
+           nodes,
+-          ipPrefix,
++          idPrefix,
+           cassandraConfiguration,
+           dseConfiguration,
+           dseRawYaml,
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
+index 79cc0f7e6..6240cc58b 100644
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
+@@ -17,6 +17,7 @@
+  */
+ package com.datastax.oss.driver.api.testinfra.ccm;
+ 
++import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.concurrent.atomic.AtomicReference;
+ 
+ /**
+@@ -32,6 +33,8 @@ public class CustomCcmRule extends BaseCcmRule {
+ 
+   private static final AtomicReference<CustomCcmRule> CURRENT = new AtomicReference<>();
+ 
++  private static AtomicInteger cluster_id = new AtomicInteger(1);
++
+   CustomCcmRule(CcmBridge ccmBridge) {
+     super(ccmBridge);
+   }
+@@ -75,6 +78,10 @@ public class CustomCcmRule extends BaseCcmRule {
+ 
+     private final CcmBridge.Builder bridgeBuilder = CcmBridge.builder();
+ 
++    public Builder() {
++      this.withIdPrefix(Integer.toString(cluster_id.incrementAndGet()));
++    }
++
+     public Builder withNodes(int... nodes) {
+       bridgeBuilder.withNodes(nodes);
+       return this;
+@@ -125,6 +132,11 @@ public class CustomCcmRule extends BaseCcmRule {
+       return this;
+     }
+ 
++    public Builder withIdPrefix(String idPrefix) {
++      bridgeBuilder.withIdPrefix(idPrefix);
++      return this;
++    }
++
+     public CustomCcmRule build() {
+       return new CustomCcmRule(bridgeBuilder.build());
+     }
