@@ -117,3 +117,12 @@ tests:
 
   # disable cause now CCM uses different ip address and port for the JMX
   - CCMBridgeTest
+
+  # 'CREATE TABLE WITH COMPACT STORAGE' is now deprecated
+  - TableMetadataTest#should_parse_compact_dynamic_table
+  # 'CREATE TABLE WITH COMPACT STORAGE' is now deprecated
+  - TableMetadataTest#should_parse_compact_static_table
+  # 'CREATE TABLE WITH COMPACT STORAGE' is now deprecated
+  - TableMetadataTest#should_parse_compact_table_with_multiple_clustering_columns
+  # 'CREATE TABLE WITH COMPACT STORAGE' is now deprecated
+  - TableMetadataTest#should_parse_dense_table
