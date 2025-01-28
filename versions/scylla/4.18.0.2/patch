@@ -189,7 +189,7 @@ index 2e137b085..6c311cd4f 100644
        Version requirement, String description, boolean lessThan, boolean dse) {
      return new Statement() {
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
-index f49b7a9db..c86dc356e 100644
+index f49b7a9db..6c70a4441 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 @@ -64,10 +64,16 @@ public class CcmBridge implements AutoCloseable {
@@ -270,7 +270,7 @@ index f49b7a9db..c86dc356e 100644
  
    public String getNodeIpAddress(int nodeId) {
 -    return ipPrefix + nodeId;
-+    return idPrefix + nodeId;
++    return "127.0." + idPrefix + "." + nodeId;
    }
  
    public static Builder builder() {
