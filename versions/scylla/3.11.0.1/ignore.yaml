@@ -7,3 +7,12 @@ tests:
 
   # using 2 node cluster, and stopping one, isn't supported by scylla since raft
   - SchemaChangesCCTest #should_receive_changes_made_while_control_connection_is_down_on_reconnect
+
+  # 'CREATE TABLE WITH COMPACT STORAGE' is now deprecated
+  - TableMetadataTest#should_parse_compact_dynamic_table
+  # 'CREATE TABLE WITH COMPACT STORAGE' is now deprecated
+  - TableMetadataTest#should_parse_compact_static_table
+  # 'CREATE TABLE WITH COMPACT STORAGE' is now deprecated
+  - TableMetadataTest#should_parse_compact_table_with_multiple_clustering_columns
+  # 'CREATE TABLE WITH COMPACT STORAGE' is now deprecated
+  - TableMetadataTest#should_parse_dense_table

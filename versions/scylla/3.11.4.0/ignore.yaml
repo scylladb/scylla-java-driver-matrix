@@ -11,3 +11,12 @@ tests:
   # as ScyllaSkip mark doesn't seem to function correctly (skipping, but then failing the test again anyway)
   # the class is disabled due to unsupported options used for Scylla (should_keep_reconnecting_on_authentication_error)
   - ReconnectionTest
+
+  # 'CREATE TABLE WITH COMPACT STORAGE' is now deprecated
+  - TableMetadataTest#should_parse_compact_dynamic_table
+  # 'CREATE TABLE WITH COMPACT STORAGE' is now deprecated
+  - TableMetadataTest#should_parse_compact_static_table
+  # 'CREATE TABLE WITH COMPACT STORAGE' is now deprecated
+  - TableMetadataTest#should_parse_compact_table_with_multiple_clustering_columns
+  # 'CREATE TABLE WITH COMPACT STORAGE' is now deprecated
+  - TableMetadataTest#should_parse_dense_table
