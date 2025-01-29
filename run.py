@@ -171,6 +171,7 @@ class Run:
             # Some tests are failed
             pass
         metadata_file = Path(os.path.dirname(__file__)) / "reports" / self.metadata_file_name
+        metadata_file.parent.mkdir(exist_ok=True)
         metadata = {
             "driver_name": f"TEST-{self._tag}",
             "driver_type": "java",
