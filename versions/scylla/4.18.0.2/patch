@@ -189,7 +189,7 @@ index 2e137b085..6c311cd4f 100644
        Version requirement, String description, boolean lessThan, boolean dse) {
      return new Statement() {
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
-index f49b7a9db..6c70a4441 100644
+index f49b7a9db..3a49c74da 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 @@ -64,10 +64,16 @@ public class CcmBridge implements AutoCloseable {
@@ -256,16 +256,17 @@ index f49b7a9db..6c70a4441 100644
            "-n",
            Arrays.stream(nodes).mapToObj(n -> "" + n).collect(Collectors.joining(":")),
            createOptions.stream().collect(Collectors.joining(" ")));
-@@ -488,7 +493,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -488,7 +493,8 @@ public class CcmBridge implements AutoCloseable {
    }
  
    public void addWithoutStart(int n, String dc) {
 -    String[] initialArgs = new String[] {"add", "-i", ipPrefix + n, "-d", dc, "node" + n};
-+    String[] initialArgs = new String[] {"add", "-d", dc, "node" + n};
++    String[] initialArgs =
++        new String[] {"add", "-i", "127.0." + idPrefix + "." + n, "-d", dc, "node" + n};
      ArrayList<String> args = new ArrayList<>(Arrays.asList(initialArgs));
      if (getDseVersion().isPresent()) {
        args.add("--dse");
-@@ -613,7 +618,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -613,7 +619,7 @@ public class CcmBridge implements AutoCloseable {
    }
  
    public String getNodeIpAddress(int nodeId) {
@@ -274,7 +275,7 @@ index f49b7a9db..6c70a4441 100644
    }
  
    public static Builder builder() {
-@@ -626,7 +631,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -626,7 +632,7 @@ public class CcmBridge implements AutoCloseable {
      private final Map<String, Object> dseConfiguration = new LinkedHashMap<>();
      private final List<String> dseRawYaml = new ArrayList<>();
      private final List<String> jvmArgs = new ArrayList<>();
@@ -283,7 +284,7 @@ index f49b7a9db..6c70a4441 100644
      private final List<String> createOptions = new ArrayList<>();
      private final List<String> dseWorkloads = new ArrayList<>();
  
-@@ -670,8 +675,8 @@ public class CcmBridge implements AutoCloseable {
+@@ -670,8 +676,8 @@ public class CcmBridge implements AutoCloseable {
        return this;
      }
  
@@ -294,7 +295,7 @@ index f49b7a9db..6c70a4441 100644
        return this;
      }
  
-@@ -740,7 +745,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -740,7 +746,7 @@ public class CcmBridge implements AutoCloseable {
        return new CcmBridge(
            configDirectory,
            nodes,
