@@ -562,3 +562,116 @@ index eb77f2bf2..9d4f1e50c 100644
      ccm().decommission(2);
      listener.waitForEvent();
    }
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/TableMetadataTest.java b/driver-core/src/test/java/com/datastax/driver/core/TableMetadataTest.java
+index 777ea439f8..a63e169dac 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/TableMetadataTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/TableMetadataTest.java
+@@ -149,6 +149,7 @@ public class TableMetadataTest extends CCMTestsSupport {
+   }
+ 
+   @Test(groups = "short")
++  // Removed "WITH COMPACT STORAGE" keywords and asserts because of deprecation in Scylla
+   public void should_parse_compact_static_table() {
+     TestUtils.compactStorageSupportCheck(ccm());
+     // given
+@@ -160,17 +161,13 @@ public class TableMetadataTest extends CCMTestsSupport {
+                 + "    t timeuuid,\n"
+                 + "    v int,\n"
+                 + "    PRIMARY KEY (k)\n"
+-                + ") WITH COMPACT STORAGE;",
++                + ");",
+             keyspace);
+     // when
+     session().execute(cql);
+     TableMetadata table = cluster().getMetadata().getKeyspace(keyspace).getTable("compact_static");
+     // then
+-    assertThat(table)
+-        .isNotNull()
+-        .hasName("compact_static")
+-        .hasNumberOfColumns(4)
+-        .isCompactStorage();
++    assertThat(table).isNotNull().hasName("compact_static").hasNumberOfColumns(4);
+     assertThat(table.getColumns().get(0)).isNotNull().hasName("k").isPartitionKey().hasType(text());
+     assertThat(table.getColumns().get(1))
+         .isNotNull()
+@@ -190,6 +187,7 @@ public class TableMetadataTest extends CCMTestsSupport {
+   }
+ 
+   @Test(groups = "short")
++  // Removed "WITH COMPACT STORAGE" keywords and asserts because of deprecation in Scylla
+   public void should_parse_dense_table() {
+     TestUtils.compactStorageSupportCheck(ccm());
+     // given
+@@ -199,13 +197,13 @@ public class TableMetadataTest extends CCMTestsSupport {
+                 + "        k int,\n"
+                 + "        c int,\n"
+                 + "        PRIMARY KEY (k, c)\n"
+-                + "    ) WITH COMPACT STORAGE;",
++                + "    );",
+             keyspace);
+     // when
+     session().execute(cql);
+     TableMetadata table = cluster().getMetadata().getKeyspace(keyspace).getTable("dense");
+     // then
+-    assertThat(table).isNotNull().hasName("dense").hasNumberOfColumns(2).isCompactStorage();
++    assertThat(table).isNotNull().hasName("dense").hasNumberOfColumns(2);
+     assertThat(table.getColumns().get(0)).isNotNull().hasName("k").isPartitionKey().hasType(cint());
+     assertThat(table.getColumns().get(1))
+         .isNotNull()
+@@ -215,6 +213,7 @@ public class TableMetadataTest extends CCMTestsSupport {
+   }
+ 
+   @Test(groups = "short")
++  // Removed "WITH COMPACT STORAGE" keywords and asserts because of deprecation in Scylla
+   public void should_parse_compact_dynamic_table() {
+     TestUtils.compactStorageSupportCheck(ccm());
+     // given
+@@ -225,17 +224,13 @@ public class TableMetadataTest extends CCMTestsSupport {
+                 + "    c int,\n"
+                 + "    v timeuuid,\n"
+                 + "    PRIMARY KEY (k, c)\n"
+-                + ") WITH COMPACT STORAGE;",
++                + ");",
+             keyspace);
+     // when
+     session().execute(cql);
+     TableMetadata table = cluster().getMetadata().getKeyspace(keyspace).getTable("compact_dynamic");
+     // then
+-    assertThat(table)
+-        .isNotNull()
+-        .hasName("compact_dynamic")
+-        .hasNumberOfColumns(3)
+-        .isCompactStorage();
++    assertThat(table).isNotNull().hasName("compact_dynamic").hasNumberOfColumns(3);
+     assertThat(table.getColumns().get(0)).isNotNull().hasName("k").isPartitionKey().hasType(text());
+     assertThat(table.getColumns().get(1))
+         .isNotNull()
+@@ -251,6 +246,7 @@ public class TableMetadataTest extends CCMTestsSupport {
+   }
+ 
+   @Test(groups = "short")
++  // Removed "WITH COMPACT STORAGE" keywords and asserts because of deprecation in Scylla
+   public void should_parse_compact_table_with_multiple_clustering_columns() {
+     TestUtils.compactStorageSupportCheck(ccm());
+     // given
+@@ -263,18 +259,14 @@ public class TableMetadataTest extends CCMTestsSupport {
+                 + "    c3 double,\n"
+                 + "    v timeuuid,\n"
+                 + "    PRIMARY KEY (k, c1, c2, c3)\n"
+-                + ") WITH COMPACT STORAGE;",
++                + ");",
+             keyspace);
+     // when
+     session().execute(cql);
+     TableMetadata table =
+         cluster().getMetadata().getKeyspace(keyspace).getTable("compact_composite");
+     // then
+-    assertThat(table)
+-        .isNotNull()
+-        .hasName("compact_composite")
+-        .hasNumberOfColumns(5)
+-        .isCompactStorage();
++    assertThat(table).isNotNull().hasName("compact_composite").hasNumberOfColumns(5);
+     assertThat(table.getColumns().get(0)).isNotNull().hasName("k").isPartitionKey().hasType(text());
+     assertThat(table.getColumns().get(1))
+         .isNotNull()
