@@ -1,5 +1,5 @@
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
-index 74befba29..e5867e506 100644
+index 74befba297..e5867e5067 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
 @@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
@@ -10,8 +10,53 @@ index 74befba29..e5867e506 100644
  public class ClusterStressTest extends CCMTestsSupport {
  
    private static final Logger logger = LoggerFactory.getLogger(ClusterStressTest.class);
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java b/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java
+index 7fa9c8550a..9ac6b9135e 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java
+@@ -119,13 +119,14 @@ public class ControlConnectionTest extends CCMTestsSupport {
+     Cluster cluster = register(createClusterBuilder().build());
+     Session session = cluster.connect();
+     session.execute(
+-        "create keyspace ks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
+-    session.execute("create type ks.foo (i int)");
++        "create keyspace ControlConnectionTest_ks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
++    session.execute("create type ControlConnectionTest_ks.foo (i int)");
+     cluster.close();
+ 
+     // Second driver instance: read UDT definition
+     Cluster cluster2 = register(createClusterBuilder().build());
+-    UserType fooType = cluster2.getMetadata().getKeyspace("ks").getUserType("foo");
++    UserType fooType =
++        cluster2.getMetadata().getKeyspace("ControlConnectionTest_ks").getUserType("foo");
+ 
+     assertThat(fooType.getFieldNames()).containsExactly("i");
+   }
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/DnsEndpointTests.java b/driver-core/src/test/java/com/datastax/driver/core/DnsEndpointTests.java
+index 255f8daf8c..11dcfd1819 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/DnsEndpointTests.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/DnsEndpointTests.java
+@@ -7,12 +7,18 @@ import java.net.InetSocketAddress;
+ import java.util.List;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
++import org.testng.annotations.AfterClass;
+ import org.testng.annotations.Test;
+ 
+ public class DnsEndpointTests {
+ 
+   private static final Logger logger = LoggerFactory.getLogger(DnsEndpointTests.class);
+ 
++  @AfterClass(alwaysRun = true)
++  public void clearMocks() {
++    MappedHostResolverProvider.unsetResolver();
++  }
++
+   @Test(groups = "long")
+   public void replace_cluster_test() {
+     // Configure host resolution
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java b/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java
-index 34d382dcb..a10cb17ba 100644
+index 34d382dcb8..a10cb17ba8 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java
 @@ -597,7 +597,7 @@ public class HostConnectionPoolTest extends ScassandraTestBase.PerClassCluster {
@@ -151,8 +196,28 @@ index 34d382dcb..a10cb17ba 100644
        assertPoolSize(pool, 1);
        Uninterruptibles.getUninterruptibly(request.requestInitialized, 10, TimeUnit.SECONDS);
        request.simulateSuccessResponse();
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/MappedHostResolverProvider.java b/driver-core/src/test/java/com/datastax/driver/core/MappedHostResolverProvider.java
+index 1bc4b1884b..7bce7c61d5 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/MappedHostResolverProvider.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/MappedHostResolverProvider.java
+@@ -18,6 +18,15 @@ public class MappedHostResolverProvider {
+     return true;
+   }
+ 
++  public static synchronized boolean unsetResolver() {
++    if (resolver == null) {
++      return false;
++    }
++    resolver = null;
++    HostResolutionRequestInterceptor.INSTANCE.uninstall();
++    return true;
++  }
++
+   public static synchronized void addResolverEntry(String hostname, String address) {
+     if (resolver == null) {
+       setResolver(new MappedHostResolver());
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java b/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java
-index fbdf187a7..dd1c34592 100644
+index fbdf187a70..dd1c345929 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java
 @@ -45,7 +45,9 @@ import org.mockito.stubbing.Answer;
@@ -167,7 +232,7 @@ index fbdf187a7..dd1c34592 100644
  
    @Test(groups = "short")
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java b/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
-index b3d6be0f3..30fafa527 100644
+index b3d6be0f3c..30fafa5273 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
 @@ -24,6 +24,7 @@ package com.datastax.driver.core;
@@ -191,7 +256,7 @@ index b3d6be0f3..30fafa527 100644
    public void should_use_connection_from_reconnection_in_pool() {
      TogglabePolicy loadBalancingPolicy = new TogglabePolicy(new RoundRobinPolicy());
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
-index aa0f57379..6eaa74e31 100644
+index aa0f573795..6eaa74e318 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
 @@ -19,6 +19,7 @@ import static com.datastax.driver.core.Assertions.assertThat;
@@ -215,7 +280,7 @@ index aa0f57379..6eaa74e31 100644
  
    SocketChannelMonitor channelMonitor;
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
-index ea75f8454..ea70e9081 100644
+index ea75f84544..ea70e9081a 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
 @@ -38,7 +38,9 @@ import org.slf4j.LoggerFactory;
