@@ -1,5 +1,5 @@
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMAccess.java b/driver-core/src/test/java/com/datastax/driver/core/CCMAccess.java
-index b6714f07f..8a91c6fb1 100644
+index b6714f07fe..8a91c6fb1c 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/CCMAccess.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/CCMAccess.java
 @@ -54,6 +54,13 @@ public interface CCMAccess extends Closeable {
@@ -17,7 +17,7 @@ index b6714f07f..8a91c6fb1 100644
    File getCcmDir();
  
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
-index 4c9ba61fc..62f674a88 100644
+index 4c9ba61fc5..62f674a885 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
 @@ -194,6 +194,7 @@ public class CCMBridge implements CCMAccess {
@@ -255,7 +255,7 @@ index 4c9ba61fc..62f674a88 100644
        if (version != null ? !version.equals(builder.version) : builder.version != null)
          return false;
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMCache.java b/driver-core/src/test/java/com/datastax/driver/core/CCMCache.java
-index 332907355..254e2cae1 100644
+index 3329073555..254e2cae12 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/CCMCache.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/CCMCache.java
 @@ -64,6 +64,11 @@ public class CCMCache {
@@ -271,7 +271,7 @@ index 332907355..254e2cae1 100644
      public File getCcmDir() {
        return ccm.getCcmDir();
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMTestsSupport.java b/driver-core/src/test/java/com/datastax/driver/core/CCMTestsSupport.java
-index 6200fc233..a02efd416 100644
+index 6200fc2338..a02efd4168 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/CCMTestsSupport.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/CCMTestsSupport.java
 @@ -109,6 +109,11 @@ public class CCMTestsSupport {
@@ -287,7 +287,7 @@ index 6200fc233..a02efd416 100644
      public InetSocketAddress addressOfNode(int n) {
        return delegate.addressOfNode(n);
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
-index 74befba29..e5867e506 100644
+index 74befba297..e5867e5067 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
 @@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
@@ -298,8 +298,30 @@ index 74befba29..e5867e506 100644
  public class ClusterStressTest extends CCMTestsSupport {
  
    private static final Logger logger = LoggerFactory.getLogger(ClusterStressTest.class);
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java b/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java
+index 7fa9c8550a..9ac6b9135e 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java
+@@ -119,13 +119,14 @@ public class ControlConnectionTest extends CCMTestsSupport {
+     Cluster cluster = register(createClusterBuilder().build());
+     Session session = cluster.connect();
+     session.execute(
+-        "create keyspace ks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
+-    session.execute("create type ks.foo (i int)");
++        "create keyspace ControlConnectionTest_ks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
++    session.execute("create type ControlConnectionTest_ks.foo (i int)");
+     cluster.close();
+ 
+     // Second driver instance: read UDT definition
+     Cluster cluster2 = register(createClusterBuilder().build());
+-    UserType fooType = cluster2.getMetadata().getKeyspace("ks").getUserType("foo");
++    UserType fooType =
++        cluster2.getMetadata().getKeyspace("ControlConnectionTest_ks").getUserType("foo");
+ 
+     assertThat(fooType.getFieldNames()).containsExactly("i");
+   }
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java b/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java
-index f44e64dca..aed5e394c 100644
+index f44e64dca0..aed5e394c6 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java
 @@ -597,7 +597,7 @@ public class HostConnectionPoolTest extends ScassandraTestBase.PerClassCluster {
@@ -440,7 +462,7 @@ index f44e64dca..aed5e394c 100644
        Uninterruptibles.getUninterruptibly(request.requestInitialized, 10, TimeUnit.SECONDS);
        request.simulateSuccessResponse();
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/LoadBalancingPolicyBootstrapTest.java b/driver-core/src/test/java/com/datastax/driver/core/LoadBalancingPolicyBootstrapTest.java
-index 09f8bf8ed..4f01cb47a 100644
+index 09f8bf8edb..4f01cb47a6 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/LoadBalancingPolicyBootstrapTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/LoadBalancingPolicyBootstrapTest.java
 @@ -104,8 +104,16 @@ public class LoadBalancingPolicyBootstrapTest extends CCMTestsSupport {
@@ -462,7 +484,7 @@ index 09f8bf8ed..4f01cb47a 100644
        try {
          cluster.init();
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java b/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java
-index fbdf187a7..dd1c34592 100644
+index fbdf187a70..dd1c345929 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/NettyOptionsTest.java
 @@ -45,7 +45,9 @@ import org.mockito.stubbing.Answer;
@@ -477,7 +499,7 @@ index fbdf187a7..dd1c34592 100644
  
    @Test(groups = "short")
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java b/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
-index b3d6be0f3..30fafa527 100644
+index b3d6be0f3c..30fafa5273 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/ReconnectionTest.java
 @@ -24,6 +24,7 @@ package com.datastax.driver.core;
@@ -501,7 +523,7 @@ index b3d6be0f3..30fafa527 100644
    public void should_use_connection_from_reconnection_in_pool() {
      TogglabePolicy loadBalancingPolicy = new TogglabePolicy(new RoundRobinPolicy());
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
-index aa0f57379..6eaa74e31 100644
+index aa0f573795..6eaa74e318 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
 @@ -19,6 +19,7 @@ import static com.datastax.driver.core.Assertions.assertThat;
@@ -525,7 +547,7 @@ index aa0f57379..6eaa74e31 100644
  
    SocketChannelMonitor channelMonitor;
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
-index ea75f8454..ea70e9081 100644
+index ea75f84544..ea70e9081a 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
 @@ -38,7 +38,9 @@ import org.slf4j.LoggerFactory;
@@ -540,7 +562,7 @@ index ea75f8454..ea70e9081 100644
  
    private static final Logger logger = LoggerFactory.getLogger(SessionStressTest.class);
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/StateListenerTest.java b/driver-core/src/test/java/com/datastax/driver/core/StateListenerTest.java
-index eb77f2bf2..9d4f1e50c 100644
+index eb77f2bf2c..9d4f1e50ca 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/StateListenerTest.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/StateListenerTest.java
 @@ -52,7 +52,17 @@ public class StateListenerTest extends CCMTestsSupport {
