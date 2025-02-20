@@ -1,0 +1,929 @@
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/ProtocolVersionInitialNegotiationIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/ProtocolVersionInitialNegotiationIT.java
+index 326c05eb1..02aac05d6 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/ProtocolVersionInitialNegotiationIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/ProtocolVersionInitialNegotiationIT.java
+@@ -33,6 +33,7 @@ import com.datastax.oss.driver.api.testinfra.requirement.BackendRequirement;
+ import com.datastax.oss.driver.api.testinfra.requirement.BackendType;
+ import com.datastax.oss.driver.api.testinfra.session.SessionUtils;
+ import com.datastax.oss.driver.categories.ParallelizableTests;
++import org.junit.Ignore;
+ import org.junit.Rule;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+@@ -78,6 +79,7 @@ public class ProtocolVersionInitialNegotiationIT {
+     }
+   }
+ 
++  @Ignore("Driver matrix incompatible. scylla doesn't support protocol v5 yet")
+   @BackendRequirement(
+       type = BackendType.CASSANDRA,
+       minInclusive = "4.0-rc1",
+@@ -129,6 +131,7 @@ public class ProtocolVersionInitialNegotiationIT {
+     }
+   }
+ 
++  @Ignore("Driver matrix incompatible. scylla doesn't support protocol v5 yet")
+   @BackendRequirement(
+       type = BackendType.CASSANDRA,
+       minInclusive = "2.1",
+@@ -200,6 +203,7 @@ public class ProtocolVersionInitialNegotiationIT {
+     }
+   }
+ 
++  @Ignore("Driver matrix incompatible. scylla doesn't support protocol v5 yet")
+   /** Note that this test will need to be updated as new protocol versions are introduced. */
+   @BackendRequirement(
+       type = BackendType.CASSANDRA,
+@@ -266,6 +270,7 @@ public class ProtocolVersionInitialNegotiationIT {
+     }
+   }
+ 
++  @Ignore("Driver matrix incompatible. V5 protocol checks are not supported in scylla")
+   @BackendRequirement(
+       type = BackendType.CASSANDRA,
+       minInclusive = "4.0",
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/SessionLeakIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/SessionLeakIT.java
+index c0cf0b78e..08cccf355 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/SessionLeakIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/SessionLeakIT.java
+@@ -44,6 +44,7 @@ import java.util.HashSet;
+ import java.util.Set;
+ import org.junit.Before;
+ import org.junit.ClassRule;
++import org.junit.Ignore;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+ import org.junit.runner.RunWith;
+@@ -72,6 +73,8 @@ public class SessionLeakIT {
+     // no need to clean up after since this is an isolated test
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. Seems to show incorrect session counts. Possibly polluted by other tests even though isolated?")
+   @Test
+   public void should_warn_when_session_count_exceeds_threshold() {
+     int threshold = 4;
+@@ -110,6 +113,8 @@ public class SessionLeakIT {
+     session.close();
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. Seems to show incorrect session counts. Possibly polluted by other tests even though isolated?")
+   @Test
+   public void should_never_warn_when_session_init_fails() {
+     SIMULACRON_RULE
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/compression/DirectCompressionIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/compression/DirectCompressionIT.java
+index 3dad08f4d..10402b1ce 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/compression/DirectCompressionIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/compression/DirectCompressionIT.java
+@@ -37,6 +37,7 @@ import java.time.Duration;
+ import org.junit.Assume;
+ import org.junit.BeforeClass;
+ import org.junit.ClassRule;
++import org.junit.Ignore;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+ import org.junit.rules.RuleChain;
+@@ -72,6 +73,8 @@ public class DirectCompressionIT {
+    * @test_category connection:compression
+    * @expected_result session established and queries made successfully using it.
+    */
++  @Ignore(
++      "Driver matrix incompatible. init query OPTIONS: unexpected server error [PROTOCOL_ERROR] Unknown compression algorithm")
+   @Test
+   public void should_execute_queries_with_snappy_compression() throws Exception {
+     Assume.assumeTrue(
+@@ -89,6 +92,8 @@ public class DirectCompressionIT {
+    * @test_category connection:compression
+    * @expected_result session established and queries made successfully using it.
+    */
++  @Ignore(
++      "Driver matrix incompatible. init query OPTIONS: unexpected server error [PROTOCOL_ERROR] Unknown compression algorithm)")
+   @Test
+   public void should_execute_queries_with_lz4_compression() throws Exception {
+     createAndCheckCluster("lz4");
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/compression/HeapCompressionIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/compression/HeapCompressionIT.java
+index a14c3b29b..8edf2910a 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/compression/HeapCompressionIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/compression/HeapCompressionIT.java
+@@ -37,6 +37,7 @@ import java.time.Duration;
+ import org.junit.Assume;
+ import org.junit.BeforeClass;
+ import org.junit.ClassRule;
++import org.junit.Ignore;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+ import org.junit.rules.RuleChain;
+@@ -76,6 +77,8 @@ public class HeapCompressionIT {
+    * @test_category connection:compression
+    * @expected_result session established and queries made successfully using it.
+    */
++  @Ignore(
++      "Driver matrix incompatible. init query OPTIONS: unexpected server error [PROTOCOL_ERROR] Unknown compression algorithm")
+   @Test
+   public void should_execute_queries_with_snappy_compression() throws Exception {
+     Assume.assumeTrue(
+@@ -91,6 +94,8 @@ public class HeapCompressionIT {
+    * @test_category connection:compression
+    * @expected_result session established and queries made successfully using it.
+    */
++  @Ignore(
++      "Driver matrix incompatible. init query OPTIONS: unexpected server error [PROTOCOL_ERROR] Unknown compression algorithm")
+   @Test
+   public void should_execute_queries_with_lz4_compression() throws Exception {
+     createAndCheckCluster("lz4");
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/BatchStatementIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/BatchStatementIT.java
+index 8b6526387..4342dbc39 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/BatchStatementIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/BatchStatementIT.java
+@@ -43,6 +43,7 @@ import com.datastax.oss.driver.categories.ParallelizableTests;
+ import java.util.Iterator;
+ import java.util.List;
+ import org.junit.Before;
++import org.junit.Ignore;
+ import org.junit.Rule;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+@@ -239,6 +240,7 @@ public class BatchStatementIT {
+     verifyBatchInsert();
+   }
+ 
++  @Ignore("ServerError: Not implemented: LWT")
+   @Test
+   public void should_execute_cas_batch() {
+     // Build a batch with CAS operations on the same partition.
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/BoundStatementCcmIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/BoundStatementCcmIT.java
+index 9e4b62cd2..276be70fb 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/BoundStatementCcmIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/BoundStatementCcmIT.java
+@@ -62,6 +62,7 @@ import java.util.Map;
+ import java.util.concurrent.CompletionStage;
+ import java.util.function.Function;
+ import org.junit.Before;
++import org.junit.Ignore;
+ import org.junit.Rule;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+@@ -282,6 +283,7 @@ public class BoundStatementCcmIT {
+     }
+   }
+ 
++  @Ignore("Driver matrix incompatible. Scylla doesn't support customPayload in CQL\n")
+   @Test
+   public void should_propagate_attributes_when_preparing_a_simple_statement() {
+     CqlSession session = sessionRule.session();
+@@ -378,6 +380,8 @@ public class BoundStatementCcmIT {
+     }
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. skipping cause of https://github.com/scylladb/scylla/issues/10956\n")
+   @Test
+   public void should_set_all_occurrences_of_variable() {
+     CqlSession session = sessionRule.session();
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/PerRequestKeyspaceIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/PerRequestKeyspaceIT.java
+index 9eb883144..90de52f2c 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/PerRequestKeyspaceIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/PerRequestKeyspaceIT.java
+@@ -40,6 +40,7 @@ import com.datastax.oss.driver.categories.ParallelizableTests;
+ import java.nio.ByteBuffer;
+ import java.time.Duration;
+ import org.junit.Before;
++import org.junit.Ignore;
+ import org.junit.Rule;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+@@ -126,6 +127,8 @@ public class PerRequestKeyspaceIT {
+     }
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. java.lang.IllegalArgumentException: Can't use per-request keyspace with protocol V4")
+   @Test
+   @BackendRequirement(type = BackendType.CASSANDRA, minInclusive = "4.0")
+   public void should_execute_simple_statement_with_keyspace() {
+@@ -144,6 +147,8 @@ public class PerRequestKeyspaceIT {
+     assertThat(row.getInt(0)).isEqualTo(1);
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. java.lang.IllegalArgumentException: Can't use per-request keyspace with protocol V4")
+   @Test
+   @BackendRequirement(type = BackendType.CASSANDRA, minInclusive = "4.0")
+   public void should_execute_batch_with_explicit_keyspace() {
+@@ -168,6 +173,8 @@ public class PerRequestKeyspaceIT {
+     assertThat(row.getInt(0)).isEqualTo(1);
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. java.lang.IllegalArgumentException: Can't use per-request keyspace with protocol V4")
+   @Test
+   @BackendRequirement(type = BackendType.CASSANDRA, minInclusive = "4.0")
+   public void should_execute_batch_with_inferred_keyspace() {
+@@ -200,6 +207,8 @@ public class PerRequestKeyspaceIT {
+     assertThat(row.getInt(0)).isEqualTo(1);
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. java.lang.IllegalArgumentException: Can't use per-request keyspace with protocol V4")
+   @Test
+   @BackendRequirement(type = BackendType.CASSANDRA, minInclusive = "4.0")
+   public void should_prepare_statement_with_keyspace() {
+@@ -220,6 +229,8 @@ public class PerRequestKeyspaceIT {
+     assertThat(row.getInt(0)).isEqualTo(1);
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. java.lang.IllegalArgumentException: Can't use per-request keyspace with protocol V4")
+   @Test
+   @BackendRequirement(type = BackendType.CASSANDRA, minInclusive = "4.0")
+   public void should_reprepare_statement_with_keyspace_on_the_fly() {
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/PreparedStatementCancellationIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/PreparedStatementCancellationIT.java
+index d7e581e46..22891742a 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/PreparedStatementCancellationIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/PreparedStatementCancellationIT.java
+@@ -35,6 +35,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.Iterables;
+ import java.util.concurrent.CompletableFuture;
+ import org.junit.After;
+ import org.junit.Before;
++import org.junit.Ignore;
+ import org.junit.Rule;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+@@ -113,6 +114,8 @@ public class PreparedStatementCancellationIT {
+   // documents the fact that the current driver impl will behave in this way.  We should probably
+   // consider changing this in a future release, although it's worthwhile fully considering the
+   // implications of such a change.
++  @Ignore(
++      "Driver matrix incompatible. Flaky, cache may remove this entry before the comparison and fail. Failure consistent when adding sleep before verify. Passes when run locally without sleep.")
+   @Test
+   public void will_cache_invalid_cql() throws Exception {
+ 
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/PreparedStatementIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/PreparedStatementIT.java
+index 5671a7684..88db15ee2 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/PreparedStatementIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/PreparedStatementIT.java
+@@ -53,6 +53,7 @@ import java.util.concurrent.CompletionStage;
+ import junit.framework.TestCase;
+ import org.assertj.core.api.AbstractThrowableAssert;
+ import org.junit.Before;
++import org.junit.Ignore;
+ import org.junit.Rule;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+@@ -148,6 +149,7 @@ public class PreparedStatementIT {
+     }
+   }
+ 
++  @Ignore("Driver matrix incompatible. No reason was listed")
+   @Test
+   @BackendRequirement(type = BackendType.CASSANDRA, minInclusive = "4.0")
+   public void should_update_metadata_when_schema_changed_across_executions() {
+@@ -177,6 +179,8 @@ public class PreparedStatementIT {
+     }
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. java.lang.IllegalArgumentException: Can't use per-request keyspace with protocol V4. This reason was listed but may be incorrect.")
+   @Test
+   @BackendRequirement(type = BackendType.CASSANDRA, minInclusive = "4.0")
+   public void should_update_metadata_when_schema_changed_across_pages() {
+@@ -222,6 +226,7 @@ public class PreparedStatementIT {
+     assertThat(ps.getResultSetDefinitions().get("d").getType()).isEqualTo(DataTypes.INT);
+   }
+ 
++  @Ignore("Driver matrix incompatible. No reason was listed")
+   @Test
+   @BackendRequirement(type = BackendType.CASSANDRA, minInclusive = "4.0")
+   public void should_update_metadata_when_schema_changed_across_sessions() {
+@@ -269,6 +274,8 @@ public class PreparedStatementIT {
+     session2.close();
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. expected \"Undefined column name d\" and got \"Undefined name d\"")
+   @Test
+   @BackendRequirement(type = BackendType.CASSANDRA, minInclusive = "4.0")
+   public void should_fail_to_reprepare_if_query_becomes_invalid() {
+@@ -288,12 +295,14 @@ public class PreparedStatementIT {
+         .hasMessageContaining("Undefined column name d");
+   }
+ 
++  @Ignore("Driver matrix incompatible. No reason was listed")
+   @Test
+   @BackendRequirement(type = BackendType.CASSANDRA, minInclusive = "4.0")
+   public void should_not_store_metadata_for_conditional_updates() {
+     should_not_store_metadata_for_conditional_updates(sessionRule.session());
+   }
+ 
++  @Ignore("ServerError: Not implemented: LWT")
+   @Test
+   @BackendRequirement(type = BackendType.CASSANDRA, minInclusive = "2.2")
+   public void should_not_store_metadata_for_conditional_updates_in_legacy_protocol() {
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/QueryTraceIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/QueryTraceIT.java
+index 37a600efb..74ff340aa 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/QueryTraceIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/QueryTraceIT.java
+@@ -34,6 +34,7 @@ import com.datastax.oss.driver.categories.ParallelizableTests;
+ import java.net.InetAddress;
+ import java.net.InetSocketAddress;
+ import org.junit.ClassRule;
++import org.junit.Ignore;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+ import org.junit.rules.RuleChain;
+@@ -66,6 +67,7 @@ public class QueryTraceIT {
+         .hasMessage("Tracing was disabled for this request");
+   }
+ 
++  @Ignore("Driver matrix incompatible. Undefined name coordinator_port in selection clause")
+   @Test
+   public void should_fetch_trace_when_tracing_enabled() {
+     ExecutionInfo executionInfo =
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/reactive/DefaultReactiveResultSetIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/reactive/DefaultReactiveResultSetIT.java
+index c00cf064e..030300b0d 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/reactive/DefaultReactiveResultSetIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/reactive/DefaultReactiveResultSetIT.java
+@@ -46,6 +46,7 @@ import java.util.Set;
+ import org.junit.Before;
+ import org.junit.BeforeClass;
+ import org.junit.ClassRule;
++import org.junit.Ignore;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+ import org.junit.rules.RuleChain;
+@@ -173,6 +174,7 @@ public class DefaultReactiveResultSetIT {
+     assertThat(wasApplied).hasSize(1).containsExactly(true);
+   }
+ 
++  @Ignore("Driver matrix incompatible. No reason listed.")
+   @Test
+   public void should_write_cas() {
+     SimpleStatement statement =
+@@ -231,6 +233,7 @@ public class DefaultReactiveResultSetIT {
+     assertThat(wasApplied).hasSize(1).containsExactly(row.wasApplied());
+   }
+ 
++  @Ignore("Driver matrix incompatible. No reason listed.")
+   @Test
+   public void should_write_batch_cas() {
+     BatchStatement batch = createCASBatch();
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/loadbalancing/DefaultLoadBalancingPolicyIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/loadbalancing/DefaultLoadBalancingPolicyIT.java
+index af454fc64..e3b0e33a6 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/loadbalancing/DefaultLoadBalancingPolicyIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/loadbalancing/DefaultLoadBalancingPolicyIT.java
+@@ -53,6 +53,7 @@ import java.util.Set;
+ import java.util.concurrent.TimeUnit;
+ import org.junit.BeforeClass;
+ import org.junit.ClassRule;
++import org.junit.Ignore;
+ import org.junit.Test;
+ import org.junit.rules.RuleChain;
+ import org.junit.rules.TestRule;
+@@ -234,6 +235,8 @@ public class DefaultLoadBalancingPolicyIT {
+     }
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. test wrongly assume all nodes are on 127.0.0.1 except node5 from dc2\n")
+   @Test
+   public void should_apply_node_filter() {
+     Set<Node> localNodes = new HashSet<>();
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/CaseSensitiveUdtIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/CaseSensitiveUdtIT.java
+index f80b02207..93ede4d1d 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/CaseSensitiveUdtIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/CaseSensitiveUdtIT.java
+@@ -31,6 +31,7 @@ import com.datastax.oss.driver.api.testinfra.session.SessionUtils;
+ import com.datastax.oss.driver.categories.ParallelizableTests;
+ import java.time.Duration;
+ import org.junit.ClassRule;
++import org.junit.Ignore;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+ import org.junit.rules.RuleChain;
+@@ -61,6 +62,7 @@ public class CaseSensitiveUdtIT {
+   @ClassRule
+   public static final TestRule CHAIN = RuleChain.outerRule(CCM_RULE).around(SESSION_RULE);
+ 
++  @Ignore("Driver matrix incompatible. InvalidQueryException: Unknown type ks_17.address")
+   @Test
+   public void should_expose_metadata_with_correct_case() {
+     boolean supportsFunctions = CCM_RULE.getCassandraVersion().compareTo(Version.V2_2_0) >= 0;
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
+index 8f5680ff4..c645f809e 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
+@@ -38,6 +38,7 @@ import java.net.InetSocketAddress;
+ import java.util.Collection;
+ import java.util.Set;
+ import java.util.concurrent.TimeUnit;
++import org.junit.Ignore;
+ import org.junit.Rule;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+@@ -47,6 +48,8 @@ public class NodeMetadataIT {
+ 
+   @Rule public CcmRule ccmRule = CcmRule.getInstance();
+ 
++  @Ignore(
++      "Driver matrix incompatible. expecting scylla to report 3.11.0 as CQL version, scylla report 3.0.8 for now")
+   @Test
+   public void should_expose_node_metadata() {
+     try (CqlSession session = SessionUtils.newSession(ccmRule)) {
+@@ -61,7 +64,7 @@ public class NodeMetadataIT {
+                   assertThat(broadcastAddress.getAddress()).isEqualTo(connectAddress.getAddress()));
+       assertThat(node.getListenAddress().get().getAddress()).isEqualTo(connectAddress.getAddress());
+       assertThat(node.getDatacenter()).isEqualTo("dc1");
+-      assertThat(node.getRack()).isEqualTo("r1");
++      assertThat(node.getRack()).isEqualTo("RAC1");
+       if (CcmBridge.isDistributionOf(BackendType.CASSANDRA)) {
+         // CcmBridge does not report accurate C* versions for other distributions (e.g. DSE), only
+         // approximated values
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaAgreementIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaAgreementIT.java
+index 724508d38..8a85d32bb 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaAgreementIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaAgreementIT.java
+@@ -30,6 +30,7 @@ import com.datastax.oss.driver.api.testinfra.session.SessionUtils;
+ import java.time.Duration;
+ import java.util.concurrent.atomic.AtomicInteger;
+ import org.junit.ClassRule;
++import org.junit.Ignore;
+ import org.junit.Rule;
+ import org.junit.Test;
+ import org.junit.rules.RuleChain;
+@@ -65,6 +66,8 @@ public class SchemaAgreementIT {
+     assertThat(SESSION_RULE.session().checkSchemaAgreement()).isTrue();
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. pause/resume scylla doesn't immediately have schema disagreement")
+   @Test
+   public void should_fail_on_timeout() {
+     CCM_RULE.getCcmBridge().pause(2);
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaChangesIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaChangesIT.java
+index 85fcfc02c..17e4d2595 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaChangesIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaChangesIT.java
+@@ -47,6 +47,7 @@ import java.util.function.Consumer;
+ import java.util.function.Function;
+ import org.junit.Before;
+ import org.junit.ClassRule;
++import org.junit.Ignore;
+ import org.junit.Test;
+ import org.junit.rules.RuleChain;
+ import org.junit.rules.TestRule;
+@@ -260,8 +261,9 @@ public class SchemaChangesIT {
+           assertThat(view.getName().asInternal()).isEqualTo("highscores");
+           assertThat(view.getBaseTable().asInternal()).isEqualTo("scores");
+           assertThat(view.includesAllColumns()).isFalse();
+-          assertThat(view.getWhereClause())
+-              .hasValue("game IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL");
++          assertThat(view.getWhereClause().get().toLowerCase())
++              .isEqualTo(
++                  "game IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL".toLowerCase());
+           assertThat(view.getColumns())
+               .containsOnlyKeys(
+                   CqlIdentifier.fromInternal("game"),
+@@ -271,6 +273,7 @@ public class SchemaChangesIT {
+         (listener, view) -> verify(listener).onViewCreated(view));
+   }
+ 
++  @Ignore("Driver matrix incompatible. wrong case of NULL is returned in schema of MV")
+   @Test
+   public void should_handle_view_drop() {
+     assumeThat(CCM_RULE.getCcmBridge().getCassandraVersion().compareTo(Version.V3_0_0) >= 0)
+@@ -314,6 +317,8 @@ public class SchemaChangesIT {
+         (listener, oldView, newView) -> verify(listener).onViewUpdated(newView, oldView));
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. 'java isn't supported for scylla user defined functions and aggregations'")
+   @Test
+   public void should_handle_function_creation() {
+     assumeThat(CCM_RULE.getCcmBridge().getCassandraVersion().compareTo(Version.V2_2_0) >= 0)
+@@ -338,6 +343,8 @@ public class SchemaChangesIT {
+         (listener, function) -> verify(listener).onFunctionCreated(function));
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. 'java isn't supported for scylla user defined functions and aggregations'")
+   @Test
+   public void should_handle_function_drop() {
+     assumeThat(CCM_RULE.getCcmBridge().getCassandraVersion().compareTo(Version.V2_2_0) >= 0)
+@@ -354,6 +361,8 @@ public class SchemaChangesIT {
+         (listener, oldFunction) -> verify(listener).onFunctionDropped(oldFunction));
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. 'java isn't supported for scylla user defined functions and aggregations'")
+   @Test
+   public void should_handle_function_update() {
+     assumeThat(CCM_RULE.getCcmBridge().getCassandraVersion().compareTo(Version.V2_2_0) >= 0)
+@@ -374,6 +383,8 @@ public class SchemaChangesIT {
+             verify(listener).onFunctionUpdated(newFunction, oldFunction));
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. 'java isn't supported for scylla user defined functions and aggregations'")
+   @Test
+   public void should_handle_aggregate_creation() {
+     assumeThat(CCM_RULE.getCcmBridge().getCassandraVersion().compareTo(Version.V2_2_0) >= 0)
+@@ -400,6 +411,8 @@ public class SchemaChangesIT {
+         (listener, aggregate) -> verify(listener).onAggregateCreated(aggregate));
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. 'java isn't supported for scylla user defined functions and aggregations'")
+   @Test
+   public void should_handle_aggregate_drop() {
+     assumeThat(CCM_RULE.getCcmBridge().getCassandraVersion().compareTo(Version.V2_2_0) >= 0)
+@@ -417,6 +430,8 @@ public class SchemaChangesIT {
+         (listener, oldAggregate) -> verify(listener).onAggregateDropped(oldAggregate));
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. 'java isn't supported for scylla user defined functions and aggregations'")
+   @Test
+   public void should_handle_aggregate_update() {
+     assumeThat(CCM_RULE.getCcmBridge().getCassandraVersion().compareTo(Version.V2_2_0) >= 0)
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaIT.java
+index df5571974..317422e06 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaIT.java
+@@ -47,6 +47,7 @@ import java.util.Map;
+ import java.util.Objects;
+ import java.util.concurrent.TimeUnit;
+ import org.junit.AssumptionViolatedException;
++import org.junit.Ignore;
+ import org.junit.Rule;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+@@ -188,6 +189,7 @@ public class SchemaIT {
+     }
+   }
+ 
++  @Ignore("Driver matrix incompatible. java.util.NoSuchElementException: No value present")
+   @BackendRequirement(
+       type = BackendType.CASSANDRA,
+       minInclusive = "4.0",
+@@ -302,6 +304,7 @@ public class SchemaIT {
+     }
+   }
+ 
++  @Ignore("Driver matrix incompatible. java.util.NoSuchElementException: No value present")
+   @BackendRequirement(
+       type = BackendType.CASSANDRA,
+       minInclusive = "4.0",
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/session/AddedNodeIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/session/AddedNodeIT.java
+index 1ce3fd1ca..fdd2ea861 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/session/AddedNodeIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/session/AddedNodeIT.java
+@@ -33,6 +33,7 @@ import java.util.Map;
+ import java.util.Set;
+ import java.util.concurrent.TimeUnit;
+ import org.junit.ClassRule;
++import org.junit.Ignore;
+ import org.junit.Test;
+ 
+ public class AddedNodeIT {
+@@ -40,6 +41,7 @@ public class AddedNodeIT {
+   @ClassRule
+   public static final CustomCcmRule CCM_RULE = CustomCcmRule.builder().withNodes(3).build();
+ 
++  @Ignore("Driver matrix incompatible. No reason was specified in ignore.yaml")
+   @Test
+   public void should_signal_and_create_pool_when_node_gets_added() {
+     AddListener addListener = new AddListener();
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/session/RemovedNodeIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/session/RemovedNodeIT.java
+index e0f332915..66a3d81fc 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/session/RemovedNodeIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/session/RemovedNodeIT.java
+@@ -33,6 +33,7 @@ import java.util.Map;
+ import java.util.Set;
+ import java.util.concurrent.TimeUnit;
+ import org.junit.ClassRule;
++import org.junit.Ignore;
+ import org.junit.Test;
+ 
+ public class RemovedNodeIT {
+@@ -45,6 +46,8 @@ public class RemovedNodeIT {
+           .withNodes(4)
+           .build();
+ 
++  @Ignore(
++      "Driver matrix incompatible. NodeStateListener isn't called with onRemove when node decommissioned")
+   @Test
+   public void should_signal_and_destroy_pool_when_node_gets_removed() {
+     RemovalListener removalListener = new RemovalListener();
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/mapper/QueryReturnTypesIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/mapper/QueryReturnTypesIT.java
+index c6e909122..ddaf74f07 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/mapper/QueryReturnTypesIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/mapper/QueryReturnTypesIT.java
+@@ -54,6 +54,7 @@ import java.util.stream.Stream;
+ import org.junit.Before;
+ import org.junit.BeforeClass;
+ import org.junit.ClassRule;
++import org.junit.Ignore;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+ import org.junit.rules.RuleChain;
+@@ -104,12 +105,14 @@ public class QueryReturnTypesIT {
+     assertThat(dao.findByIdAndRank(1, 1)).isNull();
+   }
+ 
++  @Ignore("ServerError: Not implemented: LWT")
+   @Test
+   public void should_execute_conditional_query_and_map_to_boolean() {
+     assertThat(dao.deleteIfExists(1, 1)).isTrue();
+     assertThat(dao.deleteIfExists(1, 1)).isFalse();
+   }
+ 
++  @Ignore("ServerError: Not implemented: LWT")
+   @Test
+   public void should_execute_async_conditional_query_and_map_to_boolean() {
+     assertThat(CompletableFutures.getUninterruptibly(dao.deleteIfExistsAsync(1, 1))).isTrue();
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/mapper/SelectOtherClausesIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/mapper/SelectOtherClausesIT.java
+index 3eb40fd85..df1a5e40b 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/mapper/SelectOtherClausesIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/mapper/SelectOtherClausesIT.java
+@@ -46,6 +46,7 @@ import java.util.Map;
+ import java.util.Objects;
+ import org.junit.BeforeClass;
+ import org.junit.ClassRule;
++import org.junit.Ignore;
+ import org.junit.Test;
+ import org.junit.experimental.categories.Category;
+ import org.junit.rules.RuleChain;
+@@ -101,6 +102,8 @@ public class SelectOtherClausesIT {
+     assertThat(elements.getAvailableWithoutFetching()).isEqualTo(1);
+   }
+ 
++  @Ignore(
++      "Driver matrix incompatible. https://github.com/scylladb/scylla/issues/10008, scylla can return empty page, this test isn't expecting")
+   @Test
+   public void should_select_with_per_partition_limit() {
+     PagingIterable<Simple> elements = dao.selectWithPerPartitionLimit(5);
+diff --git a/test-infra/revapi.json b/test-infra/revapi.json
+index c75a98cb4..366049236 100644
+--- a/test-infra/revapi.json
++++ b/test-infra/revapi.json
+@@ -192,6 +192,16 @@
+         "code": "java.method.removed",
+         "old": "method java.util.Optional<com.datastax.oss.driver.api.core.Version> com.datastax.oss.driver.api.testinfra.ccm.CcmBridge::getDseVersion()",
+         "justification": "Method has been replaced with more generic isDistributionOf(BackendType) and getDistributionVersion()"
++      },
++      {
++        "code": "java.method.removed",
++        "old": "method com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.Builder com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.Builder::withIpPrefix(java.lang.String)",
++        "justification": "Scylla CCM support"
++      },
++      {
++        "code": "java.method.removed",
++        "old": "method com.datastax.oss.driver.api.testinfra.ccm.CustomCcmRule.Builder com.datastax.oss.driver.api.testinfra.ccm.CustomCcmRule.Builder::withIpPrefix(java.lang.String)",
++        "justification": "Scylla CCM support"
+       }
+     ]
+   }
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
+index 882cd55b9..8baa4edf9 100644
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
+@@ -20,9 +20,14 @@ package com.datastax.oss.driver.api.testinfra.ccm;
+ import com.datastax.oss.driver.api.core.DefaultProtocolVersion;
+ import com.datastax.oss.driver.api.core.ProtocolVersion;
+ import com.datastax.oss.driver.api.core.Version;
++import com.datastax.oss.driver.api.core.metadata.EndPoint;
+ import com.datastax.oss.driver.api.testinfra.CassandraResourceRule;
+ import com.datastax.oss.driver.api.testinfra.requirement.BackendRequirementRule;
+ import com.datastax.oss.driver.api.testinfra.requirement.BackendType;
++import com.datastax.oss.driver.internal.core.metadata.DefaultEndPoint;
++import java.net.InetSocketAddress;
++import java.util.Collections;
++import java.util.Set;
+ import org.junit.AssumptionViolatedException;
+ import org.junit.runner.Description;
+ import org.junit.runners.model.Statement;
+@@ -56,6 +61,13 @@ public abstract class BaseCcmRule extends CassandraResourceRule {
+     ccmBridge.close();
+   }
+ 
++  @Override
++  public Set<EndPoint> getContactPoints() {
++    return Collections.singleton(
++        new DefaultEndPoint(
++            new InetSocketAddress(String.format("127.0.%s.1", ccmBridge.idPrefix), 9042)));
++  }
++
+   @Override
+   public Statement apply(Statement base, Description description) {
+     if (BackendRequirementRule.meetsDescriptionRequirements(description)) {
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+index f0ce6bc5b..e76d46b11 100644
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+@@ -61,6 +61,10 @@ public class CcmBridge implements AutoCloseable {
+   public static final Version VERSION =
+       Objects.requireNonNull(Version.parse(System.getProperty("ccm.version", "4.0.0")));
+ 
++  public String idPrefix = "0";
++
++  public static final String SCYLLA_VERSION = System.getProperty("scylla.version");
++
+   public static final String INSTALL_DIRECTORY = System.getProperty("ccm.directory");
+ 
+   public static final String BRANCH = System.getProperty("ccm.branch");
+@@ -124,7 +128,6 @@ public class CcmBridge implements AutoCloseable {
+   private final Path configDirectory;
+   private final AtomicBoolean started = new AtomicBoolean();
+   private final AtomicBoolean created = new AtomicBoolean();
+-  private final String ipPrefix;
+   private final Map<String, Object> cassandraConfiguration;
+   private final Map<String, Object> dseConfiguration;
+   private final List<String> rawDseYaml;
+@@ -135,7 +138,7 @@ public class CcmBridge implements AutoCloseable {
+   private CcmBridge(
+       Path configDirectory,
+       int[] nodes,
+-      String ipPrefix,
++      String idPrefix,
+       Map<String, Object> cassandraConfiguration,
+       Map<String, Object> dseConfiguration,
+       List<String> dseConfigurationRawYaml,
+@@ -151,7 +154,7 @@ public class CcmBridge implements AutoCloseable {
+     } else {
+       this.nodes = nodes;
+     }
+-    this.ipPrefix = ipPrefix;
++    this.idPrefix = idPrefix;
+     this.cassandraConfiguration = cassandraConfiguration;
+     this.dseConfiguration = dseConfiguration;
+     this.rawDseYaml = dseConfigurationRawYaml;
+@@ -196,6 +199,7 @@ public class CcmBridge implements AutoCloseable {
+     return DistributionCassandraVersions.getCassandraVersion(DISTRIBUTION, VERSION);
+   }
+ 
++  @SuppressWarnings("unused")
+   private String getCcmVersionString(Version version) {
+     // for 4.0 or 5.0 pre-releases, the CCM version string needs to be "4.0-alpha1", "4.0-alpha2" or
+     // "5.0-beta1" Version.toString() always adds a patch value, even if it's not specified when
+@@ -223,14 +227,15 @@ public class CcmBridge implements AutoCloseable {
+         createOptions.add("-v git:" + BRANCH.trim().replaceAll("\"", ""));
+ 
+       } else {
+-        createOptions.add("-v " + getCcmVersionString(VERSION));
++        createOptions.add("-v " + SCYLLA_VERSION);
+       }
+       createOptions.addAll(Arrays.asList(DISTRIBUTION.getCcmOptions()));
+       execute(
+           "create",
+           CLUSTER_NAME,
+-          "-i",
+-          ipPrefix,
++          "--scylla",
++          "--id",
++          idPrefix,
+           "-n",
+           Arrays.stream(nodes).mapToObj(n -> "" + n).collect(Collectors.joining(":")),
+           createOptions.stream().collect(Collectors.joining(" ")));
+@@ -260,6 +265,9 @@ public class CcmBridge implements AutoCloseable {
+                 getConfigKey(originalKey, originalValue, cassandraVersion),
+                 getConfigValue(originalKey, originalValue, cassandraVersion)));
+       }
++      if (getCassandraVersion().compareTo(Version.V2_2_0) >= 0) {
++        execute("updateconf", "enable_user_defined_functions:true", "experimental_features:[udf]");
++      }
+ 
+       // Note that we aren't performing any substitution on DSE key/value props (at least for now)
+       if (isDistributionOf(BackendType.DSE)) {
+@@ -337,8 +345,10 @@ public class CcmBridge implements AutoCloseable {
+ 
+   public void add(int n, String dc) {
+     List<String> addOptions = new ArrayList<>();
+-    addOptions.addAll(Arrays.asList("add", "-i", ipPrefix + n, "-d", dc, "node" + n));
+-    addOptions.addAll(Arrays.asList(DISTRIBUTION.getCcmOptions()));
++    addOptions.addAll(
++        Arrays.asList(
++            "add", "--scylla", "-i", "127.0." + idPrefix + "." + n, "-d", dc, "node" + n));
++    // addOptions.addAll(Arrays.asList(DISTRIBUTION.getCcmOptions()));
+     execute(addOptions.toArray(new String[0]));
+     start(n);
+   }
+@@ -354,6 +364,7 @@ public class CcmBridge implements AutoCloseable {
+             + " --config-dir="
+             + configDirectory.toFile().getAbsolutePath();
+ 
++    LOG.warn("Executing: " + command);
+     execute(CommandLine.parse(command));
+   }
+ 
+@@ -532,7 +543,7 @@ public class CcmBridge implements AutoCloseable {
+     private final Map<String, Object> dseConfiguration = new LinkedHashMap<>();
+     private final List<String> dseRawYaml = new ArrayList<>();
+     private final List<String> jvmArgs = new ArrayList<>();
+-    private String ipPrefix = "127.0.0.";
++    private String idPrefix = "0";
+     private final List<String> createOptions = new ArrayList<>();
+     private final List<String> dseWorkloads = new ArrayList<>();
+ 
+@@ -542,13 +553,13 @@ public class CcmBridge implements AutoCloseable {
+       try {
+         this.configDirectory = Files.createTempDirectory("ccm");
+         // mark the ccm temp directories for deletion when the JVM exits
+-        this.configDirectory.toFile().deleteOnExit();
++        // this.configDirectory.toFile().deleteOnExit();
+       } catch (IOException e) {
+         // change to unchecked for now.
+         throw new RuntimeException(e);
+       }
+       // disable auto_snapshot by default to reduce disk usage when destroying schema.
+-      withCassandraConfiguration("auto_snapshot", "false");
++      // withCassandraConfiguration("auto_snapshot", "false");
+     }
+ 
+     public Builder withCassandraConfiguration(String key, Object value) {
+@@ -576,8 +587,8 @@ public class CcmBridge implements AutoCloseable {
+       return this;
+     }
+ 
+-    public Builder withIpPrefix(String ipPrefix) {
+-      this.ipPrefix = ipPrefix;
++    public Builder withIdPrefix(String idPrefix) {
++      this.idPrefix = idPrefix;
+       return this;
+     }
+ 
+@@ -629,7 +640,7 @@ public class CcmBridge implements AutoCloseable {
+       return new CcmBridge(
+           configDirectory,
+           nodes,
+-          ipPrefix,
++          idPrefix,
+           cassandraConfiguration,
+           dseConfiguration,
+           dseRawYaml,
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
+index 5ea1bf7ed..1e26ec468 100644
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
+@@ -17,6 +17,7 @@
+  */
+ package com.datastax.oss.driver.api.testinfra.ccm;
+ 
++import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.concurrent.atomic.AtomicReference;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+@@ -35,6 +36,8 @@ public class CustomCcmRule extends BaseCcmRule {
+   private static final Logger LOG = LoggerFactory.getLogger(CustomCcmRule.class);
+   private static final AtomicReference<CustomCcmRule> CURRENT = new AtomicReference<>();
+ 
++  private static AtomicInteger cluster_id = new AtomicInteger(1);
++
+   CustomCcmRule(CcmBridge ccmBridge) {
+     super(ccmBridge);
+   }
+@@ -84,6 +87,10 @@ public class CustomCcmRule extends BaseCcmRule {
+ 
+     private final CcmBridge.Builder bridgeBuilder = CcmBridge.builder();
+ 
++    public Builder() {
++      this.withIdPrefix(Integer.toString(cluster_id.incrementAndGet()));
++    }
++
+     public Builder withNodes(int... nodes) {
+       bridgeBuilder.withNodes(nodes);
+       return this;
+@@ -134,6 +141,11 @@ public class CustomCcmRule extends BaseCcmRule {
+       return this;
+     }
+ 
++    public Builder withIdPrefix(String idPrefix) {
++      bridgeBuilder.withIdPrefix(idPrefix);
++      return this;
++    }
++
+     public CustomCcmRule build() {
+       return new CustomCcmRule(bridgeBuilder.build());
+     }
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
+index 0819f7854..16c88c43a 100644
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
+@@ -28,12 +28,13 @@ public class DefaultCcmBridgeBuilderCustomizer {
+     if (!CcmBridge.isDistributionOf(
+             BackendType.DSE, (dist, cass) -> dist.nextStable().compareTo(Version.V4_0_0) >= 0)
+         || CcmBridge.isDistributionOf(BackendType.HCD)) {
+-      builder.withCassandraConfiguration("enable_materialized_views", true);
+-      builder.withCassandraConfiguration("enable_sasi_indexes", true);
++      // builder.withCassandraConfiguration("enable_materialized_views", true);
++      // builder.withCassandraConfiguration("enable_sasi_indexes", true);
+     }
+     if (CcmBridge.getDistributionVersion().nextStable().compareTo(Version.V3_0_0) >= 0) {
+-      builder.withJvmArgs("-Dcassandra.superuser_setup_delay_ms=0");
+-      builder.withJvmArgs("-Dcassandra.skip_wait_for_gossip_to_settle=0");
++      // builder.withJvmArgs("-Dcassandra.superuser_setup_delay_ms=0");
++      // builder.withJvmArgs("-Dcassandra.skip_wait_for_gossip_to_settle=0");
++      builder.withCassandraConfiguration("skip_wait_for_gossip_to_settle", "0");
+       builder.withCassandraConfiguration("num_tokens", "1");
+       builder.withCassandraConfiguration("initial_token", "0");
+     }
