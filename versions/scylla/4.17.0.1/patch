@@ -1,3 +1,19 @@
+diff --git a/core/src/main/java/com/datastax/oss/driver/internal/core/util/concurrent/DriverBlockHoundIntegration.java b/core/src/main/java/com/datastax/oss/driver/internal/core/util/concurrent/DriverBlockHoundIntegration.java
+index d18b33c4c..3d698d606 100644
+--- a/core/src/main/java/com/datastax/oss/driver/internal/core/util/concurrent/DriverBlockHoundIntegration.java
++++ b/core/src/main/java/com/datastax/oss/driver/internal/core/util/concurrent/DriverBlockHoundIntegration.java
+@@ -105,5 +105,11 @@ public final class DriverBlockHoundIntegration implements BlockHoundIntegration
+     builder.allowBlockingCallsInside("io.netty.util.concurrent.GlobalEventExecutor", "addTask");
+     builder.allowBlockingCallsInside(
+         "io.netty.util.concurrent.SingleThreadEventExecutor", "addTask");
++
++    // Exceptions for scylla-java-driver-matrix
++
++    // Various parallelizable tests sometimes fail due to ConcurrentMap's put.
++    builder.allowBlockingCallsInside(
++        "com.datastax.oss.driver.shaded.guava.common.collect.MapMakerInternalMap", "put");
+   }
+ }
 diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java
 index 06ac14601..88ffdfcae 100644
 --- a/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java
