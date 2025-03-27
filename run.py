@@ -180,6 +180,8 @@ class Run:
         report = ProcessJUnit(
             new_report_xml_path=Path(os.path.dirname(__file__)) / "reports" / f"TEST-{self._tag}.xml",
             tests_result_path=self._report_path,
-            tag=self._tag)
+            tag=self._tag,
+            driver_type=self._driver_type,
+        )
         metadata_file.write_text(json.dumps(metadata))
         return report

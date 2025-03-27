@@ -7,11 +7,12 @@ import shutil
 
 
 class ProcessJUnit:
-    def __init__(self, new_report_xml_path: Path, tests_result_path: Path, tag: str):
+    def __init__(self, new_report_xml_path: Path, tests_result_path: Path, tag: str, driver_type: str):
         self.report_path = new_report_xml_path
         self.tests_result_path = tests_result_path
         self._summary = {"time": 0.0, "tests": 0, "errors": 0, "skipped": 0, "failures": 0}
         self.tag = tag
+        self.driver_type = driver_type
 
     @lru_cache(maxsize=None)
     def _create_report(self):
@@ -35,7 +36,7 @@ class ProcessJUnit:
                      for element in properties_element]
             for testcase_parent_element in tree.iterfind("testcase"):
                 attrib = testcase_parent_element.attrib
-                attrib['classname'] = f"{self.tag}.{attrib['classname']}"
+                attrib['classname'] = f"{self.driver_type}.{self.tag}.{attrib['classname']}"
                 new_testcase_parent_element = ElementTree.SubElement(
                     new_tree, testcase_parent_element.tag, attrib=testcase_parent_element.attrib)
                 _ = [ElementTree.SubElement(new_testcase_parent_element, testcase_child_element.tag,
