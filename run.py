@@ -173,12 +173,12 @@ class Run:
         metadata_file = Path(os.path.dirname(__file__)) / "reports" / self.metadata_file_name
         metadata_file.parent.mkdir(exist_ok=True)
         metadata = {
-            "driver_name": f"TEST-{self._tag}",
+            "driver_name": f"TEST-{self._driver_type}-{self._tag}",
             "driver_type": "java",
-            "junit_result": f"./TEST-{self._tag}.xml",
+            "junit_result": f"./TEST-{self._driver_type}-{self._tag}.xml",
         }
         report = ProcessJUnit(
-            new_report_xml_path=Path(os.path.dirname(__file__)) / "reports" / f"TEST-{self._tag}.xml",
+            new_report_xml_path=Path(os.path.dirname(__file__)) / "reports" / f"TEST-{self._driver_type}-{self._tag}.xml",
             tests_result_path=self._report_path,
             tag=self._tag,
             driver_type=self._driver_type,
