@@ -1,0 +1,106 @@
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
+index 80d461aa5e..de1867dea6 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
+@@ -1348,6 +1348,9 @@ public class CCMBridge implements CCMAccess {
+       String quote = isWindows() ? "\"" : "";
+       for (String jvmArg : jvmArgs) {
+         // Windows requires jvm arguments to be quoted, while *nix requires unquoted.
++        if (scylla && jvmArg.startsWith("-Dcassandra")) {
++          continue;
++        }
+         allJvmArgs.append(" ");
+         allJvmArgs.append(quote);
+         allJvmArgs.append("--jvm_arg=");
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
+index 74befba297..e5867e5067 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/ClusterStressTest.java
+@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
+ import org.testng.annotations.AfterMethod;
+ import org.testng.annotations.Test;
+ 
++@CCMConfig(jvmArgs = {"--smp", "1"})
+ public class ClusterStressTest extends CCMTestsSupport {
+ 
+   private static final Logger logger = LoggerFactory.getLogger(ClusterStressTest.class);
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java b/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java
+index 7fa9c8550a..9ac6b9135e 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java
+@@ -119,13 +119,14 @@ public class ControlConnectionTest extends CCMTestsSupport {
+     Cluster cluster = register(createClusterBuilder().build());
+     Session session = cluster.connect();
+     session.execute(
+-        "create keyspace ks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
+-    session.execute("create type ks.foo (i int)");
++        "create keyspace ControlConnectionTest_ks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
++    session.execute("create type ControlConnectionTest_ks.foo (i int)");
+     cluster.close();
+ 
+     // Second driver instance: read UDT definition
+     Cluster cluster2 = register(createClusterBuilder().build());
+-    UserType fooType = cluster2.getMetadata().getKeyspace("ks").getUserType("foo");
++    UserType fooType =
++        cluster2.getMetadata().getKeyspace("ControlConnectionTest_ks").getUserType("foo");
+ 
+     assertThat(fooType.getFieldNames()).containsExactly("i");
+   }
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java b/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java
+index 34d382dcb8..e8c13f47d4 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/HostConnectionPoolTest.java
+@@ -597,7 +597,7 @@ public class HostConnectionPoolTest extends ScassandraTestBase.PerClassCluster {
+       allRequests.addAll(requests);
+       allRequests.add(MockRequest.send(pool));
+ 
+-      verify(factory, after(2000).times(1)).open(any(HostConnectionPool.class));
++      verify(factory, after(2000).times(1)).open(any(HostConnectionPool.class), anyInt(), anyInt());
+       assertPoolSize(pool, 2);
+       Connection connection2 = pool.connections[0].get(1);
+ 
+@@ -664,7 +664,7 @@ public class HostConnectionPoolTest extends ScassandraTestBase.PerClassCluster {
+       allRequests.addAll(requests);
+       allRequests.add(MockRequest.send(pool));
+ 
+-      verify(factory, after(2000).times(1)).open(any(HostConnectionPool.class));
++      verify(factory, after(2000).times(1)).open(any(HostConnectionPool.class), anyInt(), anyInt());
+       assertPoolSize(pool, 2);
+       reset(factory);
+       Connection connection2 = pool.connections[0].get(1);
+@@ -742,7 +742,7 @@ public class HostConnectionPoolTest extends ScassandraTestBase.PerClassCluster {
+       allRequests.addAll(requests);
+       allRequests.add(MockRequest.send(pool));
+ 
+-      verify(factory, after(2000).times(1)).open(any(HostConnectionPool.class));
++      verify(factory, after(2000).times(1)).open(any(HostConnectionPool.class), anyInt(), anyInt());
+       assertThat(pool.connections[0]).hasSize(2);
+ 
+       // Return enough times to get back under the threshold where one connection is enough
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/PreparedStatementTest.java b/driver-core/src/test/java/com/datastax/driver/core/PreparedStatementTest.java
+index 168b86730f..27bf7ac5aa 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/PreparedStatementTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/PreparedStatementTest.java
+@@ -775,6 +775,7 @@ public class PreparedStatementTest extends CCMTestsSupport {
+    * @since 2.2.0
+    */
+   @Test(groups = "long")
++  @ScyllaSkip /* @IntegrationTestDisabledScyllaUnsupportedFunctionality @IntegrationTestDisabledScyllaQueryTrace */
+   public void should_create_tombstone_when_null_value_on_bound_statement() {
+     PreparedStatement prepared =
+         session().prepare("INSERT INTO " + SIMPLE_TABLE + " (k, i) VALUES (?, ?)");
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
+index ea75f84544..ea70e9081a 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
+@@ -38,7 +38,9 @@ import org.slf4j.LoggerFactory;
+ import org.testng.annotations.AfterMethod;
+ import org.testng.annotations.Test;
+ 
+-@CCMConfig(dirtiesContext = true)
++@CCMConfig(
++    dirtiesContext = true,
++    jvmArgs = {"--smp", "1", "--max-networking-io-control-blocks", "15000"})
+ public class SessionStressTest extends CCMTestsSupport {
+ 
+   private static final Logger logger = LoggerFactory.getLogger(SessionStressTest.class);
