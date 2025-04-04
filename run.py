@@ -81,7 +81,8 @@ class Run:
             return result
         with (self.version_folder / "ignore.yaml").open(mode="r", encoding="utf-8") as file:
             content = yaml.safe_load(file)
-            result.update(content['tests'])
+            if content and 'tests' in content:
+                result.update(content['tests'])
         return result
 
     @cached_property
