@@ -79,9 +79,9 @@ class Run:
         ignore_file_path = self.version_folder / "ignore.yaml"
         if not ignore_file_path.is_file():
             return result
-        with (self.version_folder / "ignore.yaml").open(mode="r", encoding="utf-8") as file:
+        with ignore_file_path.open(mode="r", encoding="utf-8") as file:
             content = yaml.safe_load(file)
-            if content and 'tests' in content:
+            if content and isinstance(content, dict) and 'tests' in content:
                 result.update(content['tests'])
         return result
 
