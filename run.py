@@ -81,7 +81,7 @@ class Run:
             return result
         with ignore_file_path.open(mode="r", encoding="utf-8") as file:
             content = yaml.safe_load(file)
-            if content and isinstance(content, dict) and 'tests' in content:
+            if content and isinstance(content, dict) and 'tests' in content and content['tests'] is not None:
                 result.update(content['tests'])
         return result
 
