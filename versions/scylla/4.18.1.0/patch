@@ -49,10 +49,10 @@ index d70c6d3fa..c9839c3b9 100644
    public void should_successfully_send_peers_v2_node_refresh_query()
        throws InterruptedException, ExecutionException {
 diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/ZeroTokenNodesIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/ZeroTokenNodesIT.java
-index 13405804a..c34d0739f 100644
+index ca421d1ad..a665f75b3 100644
 --- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/ZeroTokenNodesIT.java
 +++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/ZeroTokenNodesIT.java
-@@ -42,7 +42,7 @@ public class ZeroTokenNodesIT {
+@@ -44,7 +44,7 @@ public class ZeroTokenNodesIT {
    public void should_not_ignore_zero_token_peer_when_option_is_enabled() {
      CqlSession session = null;
      CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
@@ -61,7 +61,7 @@ index 13405804a..c34d0739f 100644
        ccmBridge.create();
        ccmBridge.startWithArgs("--wait-for-binary-proto");
        ccmBridge.addWithoutStart(4, "dc1");
-@@ -72,7 +72,7 @@ public class ZeroTokenNodesIT {
+@@ -74,7 +74,7 @@ public class ZeroTokenNodesIT {
    public void should_not_discover_zero_token_DC_when_option_is_disabled() {
      CqlSession session = null;
      CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
@@ -70,7 +70,7 @@ index 13405804a..c34d0739f 100644
        ccmBridge.create();
        ccmBridge.updateNodeConfig(3, "join_ring", false);
        ccmBridge.updateNodeConfig(4, "join_ring", false);
-@@ -109,7 +109,7 @@ public class ZeroTokenNodesIT {
+@@ -111,7 +111,7 @@ public class ZeroTokenNodesIT {
    public void should_discover_zero_token_DC_when_option_is_enabled() {
      CqlSession session = null;
      CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
@@ -79,7 +79,7 @@ index 13405804a..c34d0739f 100644
        ccmBridge.create();
        ccmBridge.updateNodeConfig(3, "join_ring", false);
        ccmBridge.updateNodeConfig(4, "join_ring", false);
-@@ -150,7 +150,7 @@ public class ZeroTokenNodesIT {
+@@ -152,7 +152,7 @@ public class ZeroTokenNodesIT {
    public void should_connect_to_zero_token_contact_point() {
      CqlSession session = null;
      CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
@@ -88,7 +88,7 @@ index 13405804a..c34d0739f 100644
        ccmBridge.create();
        ccmBridge.startWithArgs("--wait-for-binary-proto");
        ccmBridge.addWithoutStart(3, "dc1");
-@@ -180,7 +180,7 @@ public class ZeroTokenNodesIT {
+@@ -182,7 +182,7 @@ public class ZeroTokenNodesIT {
      // method.
      CqlSession session = null;
      CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
@@ -98,7 +98,7 @@ index 13405804a..c34d0739f 100644
        ccmBridge.updateNodeConfig(3, "join_ring", false);
        ccmBridge.updateNodeConfig(4, "join_ring", false);
 diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
-index 93ecbf181..ead5bd54d 100644
+index 1cff5d998..5fe8d51bf 100644
 --- a/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
 +++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
 @@ -63,7 +63,7 @@ public class MockResolverIT {
@@ -205,21 +205,29 @@ index 2e137b085..6c311cd4f 100644
        Version requirement, String description, boolean lessThan, boolean dse) {
      return new Statement() {
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
-index 7b4d28cedf..2c8edd1e5a 100644
+index 7b4d28ced..1e475a3f5 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
-@@ -68,6 +68,10 @@ public class CcmBridge implements AutoCloseable {
-
-   public static final Version VERSION = Objects.requireNonNull(parseCcmVersion());
-
-+  public String idPrefix = "0";
-+
+@@ -64,10 +64,17 @@ public class CcmBridge implements AutoCloseable {
+ 
+   public static final Boolean SCYLLA_ENABLEMENT = Boolean.getBoolean("ccm.scylla");
+ 
+-  public static final String CCM_VERSION_PROPERTY = System.getProperty("ccm.version", "4.0.0");
 +  public static final String SCYLLA_VERSION = System.getProperty("scylla.version");
 +
++  public static final String CCM_VERSION_PROPERTY =
++      ((SCYLLA_ENABLEMENT && SCYLLA_VERSION != null)
++          ? SCYLLA_VERSION
++          : System.getProperty("ccm.version", "4.0.0"));
+ 
+   public static final Version VERSION = Objects.requireNonNull(parseCcmVersion());
+ 
++  public String idPrefix = "0";
++
    public static final String INSTALL_DIRECTORY = System.getProperty("ccm.directory");
-
+ 
    public static final String BRANCH = System.getProperty("ccm.branch");
-@@ -175,7 +179,6 @@ public class CcmBridge implements AutoCloseable {
+@@ -175,7 +182,6 @@ public class CcmBridge implements AutoCloseable {
    private final Path configDirectory;
    private final AtomicBoolean started = new AtomicBoolean();
    private final AtomicBoolean created = new AtomicBoolean();
@@ -227,7 +235,7 @@ index 7b4d28cedf..2c8edd1e5a 100644
    private final Map<String, Object> cassandraConfiguration;
    private final Map<String, Object> dseConfiguration;
    private final List<String> rawDseYaml;
-@@ -186,7 +189,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -186,7 +192,7 @@ public class CcmBridge implements AutoCloseable {
    private CcmBridge(
        Path configDirectory,
        int[] nodes,
@@ -236,7 +244,7 @@ index 7b4d28cedf..2c8edd1e5a 100644
        Map<String, Object> cassandraConfiguration,
        Map<String, Object> dseConfiguration,
        List<String> dseConfigurationRawYaml,
-@@ -202,7 +205,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -202,7 +208,7 @@ public class CcmBridge implements AutoCloseable {
      } else {
        this.nodes = nodes;
      }
@@ -245,7 +253,7 @@ index 7b4d28cedf..2c8edd1e5a 100644
      this.cassandraConfiguration = cassandraConfiguration;
      this.dseConfiguration = dseConfiguration;
      this.rawDseYaml = dseConfigurationRawYaml;
-@@ -367,8 +370,8 @@ public class CcmBridge implements AutoCloseable {
+@@ -367,8 +373,8 @@ public class CcmBridge implements AutoCloseable {
        execute(
            "create",
            CLUSTER_NAME,
@@ -256,9 +264,9 @@ index 7b4d28cedf..2c8edd1e5a 100644
            "-n",
            Arrays.stream(nodes).mapToObj(n -> "" + n).collect(Collectors.joining(":")),
            createOptions.stream().collect(Collectors.joining(" ")));
-@@ -492,7 +495,8 @@ public class CcmBridge implements AutoCloseable {
+@@ -492,7 +498,8 @@ public class CcmBridge implements AutoCloseable {
    }
-
+ 
    public void addWithoutStart(int n, String dc) {
 -    String[] initialArgs = new String[] {"add", "-i", ipPrefix + n, "-d", dc, "node" + n};
 +    String[] initialArgs =
@@ -266,16 +274,16 @@ index 7b4d28cedf..2c8edd1e5a 100644
      ArrayList<String> args = new ArrayList<>(Arrays.asList(initialArgs));
      if (getDseVersion().isPresent()) {
        args.add("--dse");
-@@ -617,7 +621,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -617,7 +624,7 @@ public class CcmBridge implements AutoCloseable {
    }
-
+ 
    public String getNodeIpAddress(int nodeId) {
 -    return ipPrefix + nodeId;
 +    return "127.0." + idPrefix + "." + nodeId;
    }
-
+ 
    private static String IN_MS_STR = "_in_ms";
-@@ -664,7 +668,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -664,7 +671,7 @@ public class CcmBridge implements AutoCloseable {
      private final Map<String, Object> dseConfiguration = new LinkedHashMap<>();
      private final List<String> dseRawYaml = new ArrayList<>();
      private final List<String> jvmArgs = new ArrayList<>();
@@ -283,19 +291,19 @@ index 7b4d28cedf..2c8edd1e5a 100644
 +    private String idPrefix = "0";
      private final List<String> createOptions = new ArrayList<>();
      private final List<String> dseWorkloads = new ArrayList<>();
-
-@@ -708,8 +712,8 @@ public class CcmBridge implements AutoCloseable {
+ 
+@@ -708,8 +715,8 @@ public class CcmBridge implements AutoCloseable {
        return this;
      }
-
+ 
 -    public Builder withIpPrefix(String ipPrefix) {
 -      this.ipPrefix = ipPrefix;
 +    public Builder withIdPrefix(String idPrefix) {
 +      this.idPrefix = idPrefix;
        return this;
      }
-
-@@ -778,7 +782,7 @@ public class CcmBridge implements AutoCloseable {
+ 
+@@ -778,7 +785,7 @@ public class CcmBridge implements AutoCloseable {
        return new CcmBridge(
            configDirectory,
            nodes,
