@@ -119,6 +119,94 @@ index 168b86730..27bf7ac5a 100644
    public void should_create_tombstone_when_null_value_on_bound_statement() {
      PreparedStatement prepared =
          session().prepare("INSERT INTO " + SIMPLE_TABLE + " (k, i) VALUES (?, ?)");
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/SchemaChangesCCTest.java b/driver-core/src/test/java/com/datastax/driver/core/SchemaChangesCCTest.java
+index 0538cf87e..d57301bb7 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/SchemaChangesCCTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/SchemaChangesCCTest.java
+@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
+ import org.mockito.ArgumentCaptor;
+ import org.testng.annotations.Test;
+ 
+-@CCMConfig(numberOfNodes = 2, dirtiesContext = true, createCluster = false)
++@CCMConfig(numberOfNodes = 3, dirtiesContext = true, createCluster = false)
+ public class SchemaChangesCCTest extends CCMTestsSupport {
+ 
+   private static final int NOTIF_TIMEOUT_MS = 5000;
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
+index aa0f57379..b7c0145a1 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/SessionLeakTest.java
+@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.fail;
+ 
+ import com.datastax.driver.core.exceptions.InvalidQueryException;
+ import com.datastax.driver.core.utils.SocketChannelMonitor;
++import java.net.InetSocketAddress;
+ import java.util.concurrent.TimeUnit;
+ import org.testng.annotations.Test;
+ 
+@@ -51,10 +52,15 @@ public class SessionLeakTest extends CCMTestsSupport {
+ 
+     // ensure sessions.size() returns with 1 control connection + core pool size.
+     int corePoolSize = TestUtils.numberOfLocalCoreConnections(cluster);
++    int shardedConns = TestUtils.numberOfLocalCoreConnectionsSharded(cluster);
+     Session session = cluster.connect();
+ 
+     assertThat(cluster.manager.sessions.size()).isEqualTo(1);
+-    assertOpenConnections(1 + corePoolSize, cluster);
++    if (ccm().getScyllaVersion() != null) {
++      assertOpenConnections(1 + shardedConns, cluster);
++    } else {
++      assertOpenConnections(1 + corePoolSize, cluster);
++    }
+ 
+     // ensure sessions.size() returns to 0 with only 1 active connection (the control connection)
+     session.close();
+@@ -74,7 +80,11 @@ public class SessionLeakTest extends CCMTestsSupport {
+     // there should be corePoolSize more connections to accommodate for the new host.
+     Session thisSession = cluster.connect();
+     assertThat(cluster.manager.sessions.size()).isEqualTo(1);
+-    assertOpenConnections(1 + (corePoolSize * 2), cluster);
++    if (ccm().getScyllaVersion() != null) {
++      assertOpenConnections(1 + (shardedConns * 2), cluster);
++    } else {
++      assertOpenConnections(1 + (corePoolSize * 2), cluster);
++    }
+ 
+     // ensure bootstrapping a node does not create additional connections that won't get cleaned up
+     thisSession.close();
+@@ -119,8 +129,30 @@ public class SessionLeakTest extends CCMTestsSupport {
+   }
+ 
+   private void assertOpenConnections(int expected, Cluster cluster) {
++    Integer shardAwareNonSSLPort = null;
++    if (ccm().getScyllaVersion() != null) {
++      ShardingInfo shardingInfo =
++          cluster.getMetadata().allHosts().iterator().next().getShardingInfo();
++      if (shardingInfo != null) {
++        shardAwareNonSSLPort = shardingInfo.getShardAwarePort(false);
++      }
++    }
+     assertThat(cluster.getMetrics().getOpenConnections().getValue()).isEqualTo(expected);
+-    assertThat(channelMonitor.openChannels(ccm().addressOfNode(1), ccm().addressOfNode(2)).size())
+-        .isEqualTo(expected);
++    if (shardAwareNonSSLPort != null) {
++      assertThat(
++              channelMonitor
++                  .openChannels(
++                      ccm().addressOfNode(1),
++                      ccm().addressOfNode(2),
++                      new InetSocketAddress(
++                          ccm().addressOfNode(1).getAddress(), shardAwareNonSSLPort),
++                      new InetSocketAddress(
++                          ccm().addressOfNode(2).getAddress(), shardAwareNonSSLPort))
++                  .size())
++          .isEqualTo(expected);
++    } else {
++      assertThat(channelMonitor.openChannels(ccm().addressOfNode(1), ccm().addressOfNode(2)).size())
++          .isEqualTo(expected);
++    }
+   }
+ }
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
 index ea75f8454..ea70e9081 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
