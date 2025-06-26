@@ -158,7 +158,14 @@ class Run:
 
         shutil.rmtree(self._report_path, ignore_errors=True)
         if self._scylla_version:
-            cmd += f" -Dscylla.version={self._scylla_version} -Dccm.scylla"
+            if self._tag.startswith('3') or self._driver_type != 'scylla':
+                cmd += f" -Dscylla.version={self._scylla_version}"
+            else:
+                # Way it works after 4.19.0.0 `ccm.distribution` was introduced
+                cmd += f" -Dccm.version={self._scylla_version} -Dccm.distribution=scylla"
+                # Before 4.19.0.0 it required a flag:
+                cmd += f" -Dccm.scylla"
+
         elif self._scylla_install_dir:
             cmd += f" -Dccm.directory={self._scylla_install_dir}"
         else:
