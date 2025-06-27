@@ -19,9 +19,15 @@ RUN apt-get -y update \
        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/xenial-security.gpg] http://security.ubuntu.com/ubuntu \
        xenial-security main" | tee /etc/apt/sources.list.d/xenial-security.list > /dev/null \
     && apt-get -y update \
-    && apt-get install -y  temurin-8-jdk maven git docker-ce-cli python2 libssl1.0.0 libapr1 \
+    && apt-get install -y  temurin-8-jdk git docker-ce-cli python2 libssl1.0.0 libapr1 \
     && apt-get install -y  temurin-11-jdk  \    
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*  \
+    && wget https://dlcdn.apache.org/maven/maven-3/3.9.10/binaries/apache-maven-3.9.10-bin.tar.gz  \
+    && tar -xvzf apache-maven-3.9.10-bin.tar.gz -C /opt \
+    && ln -s /opt/apache-maven-3.9.10 /opt/maven
+
+ENV MAVEN_HOME=/opt/maven
+ENV PATH="$MAVEN_HOME/bin:${PATH}"
 
 RUN echo 2 | update-alternatives --config java
 
