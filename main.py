@@ -89,11 +89,11 @@ if __name__ == '__main__':
                         nargs='?', default='')
     parser.add_argument('--versions', default=[],
                         help='java-driver versions to test')
-    parser.add_argument('--tests', default='*',
-                        help='tests to pass to nosetests tool, default=tests.integration.standard')
+    parser.add_argument('--tests', default='',
+                        help='Initial tests list to pass along. Runner will modify it according to ignore.yaml from version patch. default=\'\'')
     parser.add_argument('--scylla-version', help="relocatable scylla version to use", default=os.environ.get('SCYLLA_VERSION', None))
     parser.add_argument('--recipients', help="whom to send mail at the end of the run",  nargs='+', default=None)
-    parser.add_argument('--driver-type', help='Type of python-driver ("scylla", "cassandra" or "datastax")',
+    parser.add_argument('--driver-type', help='Type of java-driver ("scylla", "cassandra" or "datastax")',
                         dest='driver_type', default='datastax')
     parser.add_argument('--version-size', help='The number of the latest versions that will test.'
                                                'The version is filtered by the major and minor values.'

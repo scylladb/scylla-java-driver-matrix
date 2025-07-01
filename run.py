@@ -25,7 +25,7 @@ class Run:
         self._scylla_version = scylla_version
         self._scylla_install_dir = scylla_install_dir
         self._tests = tests
-        self._report_path = self._java_driver_git / "integration-tests" / "target" / "surefire-reports"
+        self._report_path = self._java_driver_git / "integration-tests" / "target" / "failsafe-reports"
         if self._tag.startswith('3'):
             self._report_path = self._java_driver_git / "driver-core" / "target" / "surefire-reports"
         self._root_path = Path(__file__).parent
@@ -141,7 +141,7 @@ class Run:
 
         tests_string = self._tests
         if exclude_str := ','.join(f"!{ignore_element}" for ignore_element in self.ignore_tests):
-            tests_string = f"{exclude_str},{tests_string}"
+            tests_string = f"{exclude_str},{tests_string}".rstrip(',')
 
         no_tty = '' if sys.stdout.isatty() else '-B'
 
@@ -152,7 +152,12 @@ class Run:
         logging.info("Starting build the version")
         self._run_command_in_shell(f"mvn {no_tty} install -DskipTests=true -Dmaven.javadoc.skip=true -V")
 
-        cmd = f"mvn {no_tty} -pl integration-tests -Dtest='{tests_string}' test"
+
+        cmd = f"mvn {no_tty} -pl integration-tests integration-test"
+
+        if tests_string:
+            cmd += f" -Dit.test='{tests_string}'"
+
         if self._tag.startswith('3'):
             cmd = f"mvn {no_tty} -pl driver-core -Dtest.groups='short,long' -Dtest='{tests_string}' test"
 
