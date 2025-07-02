@@ -21,7 +21,7 @@ class ProcessJUnit:
 
         new_tree = ElementTree.Element("testsuite")
         is_first_run = True
-        for file_path in self.tests_result_path.glob("*.xml"):
+        for file_path in self.tests_result_path.glob("TEST-*.xml"):
             tree = ElementTree.parse(file_path)
             testsuite_element = next(tree.iter("testsuite"))
             for key in self._summary:
