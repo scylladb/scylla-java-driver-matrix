@@ -1,5 +1,5 @@
 diff --git a/core/src/main/java/com/datastax/oss/driver/internal/core/util/concurrent/DriverBlockHoundIntegration.java b/core/src/main/java/com/datastax/oss/driver/internal/core/util/concurrent/DriverBlockHoundIntegration.java
-index 7d90c5002..68e59e89c 100644
+index 7d90c50028..68e59e89c3 100644
 --- a/core/src/main/java/com/datastax/oss/driver/internal/core/util/concurrent/DriverBlockHoundIntegration.java
 +++ b/core/src/main/java/com/datastax/oss/driver/internal/core/util/concurrent/DriverBlockHoundIntegration.java
 @@ -107,5 +107,11 @@ public final class DriverBlockHoundIntegration implements BlockHoundIntegration
@@ -15,7 +15,7 @@ index 7d90c5002..68e59e89c 100644
    }
  }
 diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java
-index d70c6d3fa..c9839c3b9 100644
+index d70c6d3fac..c9839c3b93 100644
 --- a/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java
 +++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java
 @@ -29,6 +29,7 @@ import com.datastax.oss.simulacron.common.cluster.QueryLog;
@@ -49,10 +49,10 @@ index d70c6d3fa..c9839c3b9 100644
    public void should_successfully_send_peers_v2_node_refresh_query()
        throws InterruptedException, ExecutionException {
 diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/ZeroTokenNodesIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/ZeroTokenNodesIT.java
-index 13405804a..c34d0739f 100644
+index ca421d1ad4..a665f75b33 100644
 --- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/ZeroTokenNodesIT.java
 +++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/ZeroTokenNodesIT.java
-@@ -42,7 +42,7 @@ public class ZeroTokenNodesIT {
+@@ -44,7 +44,7 @@ public class ZeroTokenNodesIT {
    public void should_not_ignore_zero_token_peer_when_option_is_enabled() {
      CqlSession session = null;
      CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
@@ -61,7 +61,7 @@ index 13405804a..c34d0739f 100644
        ccmBridge.create();
        ccmBridge.startWithArgs("--wait-for-binary-proto");
        ccmBridge.addWithoutStart(4, "dc1");
-@@ -72,7 +72,7 @@ public class ZeroTokenNodesIT {
+@@ -74,7 +74,7 @@ public class ZeroTokenNodesIT {
    public void should_not_discover_zero_token_DC_when_option_is_disabled() {
      CqlSession session = null;
      CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
@@ -70,7 +70,7 @@ index 13405804a..c34d0739f 100644
        ccmBridge.create();
        ccmBridge.updateNodeConfig(3, "join_ring", false);
        ccmBridge.updateNodeConfig(4, "join_ring", false);
-@@ -109,7 +109,7 @@ public class ZeroTokenNodesIT {
+@@ -111,7 +111,7 @@ public class ZeroTokenNodesIT {
    public void should_discover_zero_token_DC_when_option_is_enabled() {
      CqlSession session = null;
      CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
@@ -79,7 +79,7 @@ index 13405804a..c34d0739f 100644
        ccmBridge.create();
        ccmBridge.updateNodeConfig(3, "join_ring", false);
        ccmBridge.updateNodeConfig(4, "join_ring", false);
-@@ -150,7 +150,7 @@ public class ZeroTokenNodesIT {
+@@ -152,7 +152,7 @@ public class ZeroTokenNodesIT {
    public void should_connect_to_zero_token_contact_point() {
      CqlSession session = null;
      CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
@@ -88,7 +88,7 @@ index 13405804a..c34d0739f 100644
        ccmBridge.create();
        ccmBridge.startWithArgs("--wait-for-binary-proto");
        ccmBridge.addWithoutStart(3, "dc1");
-@@ -180,7 +180,7 @@ public class ZeroTokenNodesIT {
+@@ -182,7 +182,7 @@ public class ZeroTokenNodesIT {
      // method.
      CqlSession session = null;
      CcmBridge.Builder ccmBridgeBuilder = CcmBridge.builder();
@@ -97,8 +97,32 @@ index 13405804a..c34d0739f 100644
        ccmBridge.create();
        ccmBridge.updateNodeConfig(3, "join_ring", false);
        ccmBridge.updateNodeConfig(4, "join_ring", false);
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metrics/DropwizardMetricsIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metrics/DropwizardMetricsIT.java
+index e0184516e2..c0c086179c 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metrics/DropwizardMetricsIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metrics/DropwizardMetricsIT.java
+@@ -32,7 +32,6 @@ import com.datastax.oss.driver.api.core.metrics.DefaultNodeMetric;
+ import com.datastax.oss.driver.api.core.metrics.DefaultSessionMetric;
+ import com.datastax.oss.driver.api.core.metrics.Metrics;
+ import com.datastax.oss.driver.api.testinfra.simulacron.SimulacronRule;
+-import com.datastax.oss.driver.categories.ParallelizableTests;
+ import com.datastax.oss.driver.internal.core.context.InternalDriverContext;
+ import com.datastax.oss.driver.internal.core.metrics.MetricId;
+ import com.datastax.oss.driver.internal.core.metrics.MetricIdGenerator;
+@@ -40,9 +39,9 @@ import com.datastax.oss.simulacron.common.cluster.ClusterSpec;
+ import java.util.ArrayList;
+ import java.util.List;
+ import org.junit.ClassRule;
+-import org.junit.experimental.categories.Category;
+ 
+-@Category(ParallelizableTests.class)
++// Not parallelizable because of unsynchronized concurrent access to the
++// AbstractMetricUpdater.MIN_EXPIRE_AFTER
+ public class DropwizardMetricsIT extends MetricsITBase {
+ 
+   @ClassRule
 diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
-index 93ecbf181..ead5bd54d 100644
+index 1cff5d998a..5fe8d51bf9 100644
 --- a/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
 +++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
 @@ -63,7 +63,7 @@ public class MockResolverIT {
@@ -167,8 +191,58 @@ index 93ecbf181..ead5bd54d 100644
        MultimapHostResolverProvider.removeResolverEntries("test.cluster.fake");
        MultimapHostResolverProvider.addResolverEntry(
            "test.cluster.fake", ccmBridge.getNodeIpAddress(1));
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/metrics/micrometer/MicrometerMetricsIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/metrics/micrometer/MicrometerMetricsIT.java
+index ef87040f2a..29479f27ee 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/metrics/micrometer/MicrometerMetricsIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/metrics/micrometer/MicrometerMetricsIT.java
+@@ -25,7 +25,6 @@ import com.datastax.oss.driver.api.core.metadata.Node;
+ import com.datastax.oss.driver.api.core.metrics.DefaultNodeMetric;
+ import com.datastax.oss.driver.api.core.metrics.DefaultSessionMetric;
+ import com.datastax.oss.driver.api.testinfra.simulacron.SimulacronRule;
+-import com.datastax.oss.driver.categories.ParallelizableTests;
+ import com.datastax.oss.driver.core.metrics.MetricsITBase;
+ import com.datastax.oss.driver.internal.core.context.InternalDriverContext;
+ import com.datastax.oss.driver.internal.core.metrics.MetricId;
+@@ -40,11 +39,9 @@ import io.micrometer.core.instrument.Tag;
+ import io.micrometer.core.instrument.Timer;
+ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+ import org.junit.ClassRule;
+-import org.junit.Ignore;
+-import org.junit.experimental.categories.Category;
+ 
+-@Ignore("@IntegrationTestDisabledFlaky")
+-@Category(ParallelizableTests.class)
++// Not parallelizable because of unsynchronized concurrent access to the
++// AbstractMetricUpdater.MIN_EXPIRE_AFTER
+ public class MicrometerMetricsIT extends MetricsITBase {
+ 
+   @ClassRule
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/metrics/microprofile/MicroProfileMetricsIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/metrics/microprofile/MicroProfileMetricsIT.java
+index aa04c058a4..5d0a67f8aa 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/metrics/microprofile/MicroProfileMetricsIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/metrics/microprofile/MicroProfileMetricsIT.java
+@@ -25,7 +25,6 @@ import com.datastax.oss.driver.api.core.metadata.Node;
+ import com.datastax.oss.driver.api.core.metrics.DefaultNodeMetric;
+ import com.datastax.oss.driver.api.core.metrics.DefaultSessionMetric;
+ import com.datastax.oss.driver.api.testinfra.simulacron.SimulacronRule;
+-import com.datastax.oss.driver.categories.ParallelizableTests;
+ import com.datastax.oss.driver.core.metrics.MetricsITBase;
+ import com.datastax.oss.driver.internal.core.context.InternalDriverContext;
+ import com.datastax.oss.driver.internal.core.metrics.MetricId;
+@@ -44,9 +43,9 @@ import org.eclipse.microprofile.metrics.MetricRegistry;
+ import org.eclipse.microprofile.metrics.Tag;
+ import org.eclipse.microprofile.metrics.Timer;
+ import org.junit.ClassRule;
+-import org.junit.experimental.categories.Category;
+ 
+-@Category(ParallelizableTests.class)
++// Not parallelizable because of unsynchronized concurrent access to the
++// AbstractMetricUpdater.MIN_EXPIRE_AFTER
+ public class MicroProfileMetricsIT extends MetricsITBase {
+ 
+   @ClassRule
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
-index 2e137b085..6c311cd4f 100644
+index 2e137b0854..6c311cd4f2 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
 @@ -26,13 +26,18 @@ package com.datastax.oss.driver.api.testinfra.ccm;
@@ -209,15 +283,15 @@ index 7b4d28cedf..2c8edd1e5a 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 @@ -68,6 +68,10 @@ public class CcmBridge implements AutoCloseable {
-
+ 
    public static final Version VERSION = Objects.requireNonNull(parseCcmVersion());
-
+ 
 +  public String idPrefix = "0";
 +
 +  public static final String SCYLLA_VERSION = System.getProperty("scylla.version");
 +
    public static final String INSTALL_DIRECTORY = System.getProperty("ccm.directory");
-
+ 
    public static final String BRANCH = System.getProperty("ccm.branch");
 @@ -175,7 +179,6 @@ public class CcmBridge implements AutoCloseable {
    private final Path configDirectory;
@@ -258,7 +332,7 @@ index 7b4d28cedf..2c8edd1e5a 100644
            createOptions.stream().collect(Collectors.joining(" ")));
 @@ -492,7 +495,8 @@ public class CcmBridge implements AutoCloseable {
    }
-
+ 
    public void addWithoutStart(int n, String dc) {
 -    String[] initialArgs = new String[] {"add", "-i", ipPrefix + n, "-d", dc, "node" + n};
 +    String[] initialArgs =
@@ -268,12 +342,12 @@ index 7b4d28cedf..2c8edd1e5a 100644
        args.add("--dse");
 @@ -617,7 +621,7 @@ public class CcmBridge implements AutoCloseable {
    }
-
+ 
    public String getNodeIpAddress(int nodeId) {
 -    return ipPrefix + nodeId;
 +    return "127.0." + idPrefix + "." + nodeId;
    }
-
+ 
    private static String IN_MS_STR = "_in_ms";
 @@ -664,7 +668,7 @@ public class CcmBridge implements AutoCloseable {
      private final Map<String, Object> dseConfiguration = new LinkedHashMap<>();
@@ -283,18 +357,18 @@ index 7b4d28cedf..2c8edd1e5a 100644
 +    private String idPrefix = "0";
      private final List<String> createOptions = new ArrayList<>();
      private final List<String> dseWorkloads = new ArrayList<>();
-
+ 
 @@ -708,8 +712,8 @@ public class CcmBridge implements AutoCloseable {
        return this;
      }
-
+ 
 -    public Builder withIpPrefix(String ipPrefix) {
 -      this.ipPrefix = ipPrefix;
 +    public Builder withIdPrefix(String idPrefix) {
 +      this.idPrefix = idPrefix;
        return this;
      }
-
+ 
 @@ -778,7 +782,7 @@ public class CcmBridge implements AutoCloseable {
        return new CcmBridge(
            configDirectory,
@@ -305,7 +379,7 @@ index 7b4d28cedf..2c8edd1e5a 100644
            dseConfiguration,
            dseRawYaml,
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
-index 79cc0f7e6..6240cc58b 100644
+index 79cc0f7e60..6240cc58ba 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
 @@ -17,6 +17,7 @@

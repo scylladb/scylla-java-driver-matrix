@@ -1,5 +1,5 @@
 diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
-index c7b51c040..ed202b1d4 100644
+index c7b51c040b..ed202b1d41 100644
 --- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
 +++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/NodeMetadataIT.java
 @@ -61,7 +61,7 @@ public class NodeMetadataIT {
@@ -11,8 +11,80 @@ index c7b51c040..ed202b1d4 100644
        if (!CcmBridge.DSE_ENABLEMENT) {
          // CcmBridge does not report accurate C* versions for DSE, only approximated values
          assertThat(node.getCassandraVersion()).isEqualTo(ccmRule.getCassandraVersion());
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metrics/DropwizardMetricsIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metrics/DropwizardMetricsIT.java
+index e0184516e2..c0c086179c 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metrics/DropwizardMetricsIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metrics/DropwizardMetricsIT.java
+@@ -32,7 +32,6 @@ import com.datastax.oss.driver.api.core.metrics.DefaultNodeMetric;
+ import com.datastax.oss.driver.api.core.metrics.DefaultSessionMetric;
+ import com.datastax.oss.driver.api.core.metrics.Metrics;
+ import com.datastax.oss.driver.api.testinfra.simulacron.SimulacronRule;
+-import com.datastax.oss.driver.categories.ParallelizableTests;
+ import com.datastax.oss.driver.internal.core.context.InternalDriverContext;
+ import com.datastax.oss.driver.internal.core.metrics.MetricId;
+ import com.datastax.oss.driver.internal.core.metrics.MetricIdGenerator;
+@@ -40,9 +39,9 @@ import com.datastax.oss.simulacron.common.cluster.ClusterSpec;
+ import java.util.ArrayList;
+ import java.util.List;
+ import org.junit.ClassRule;
+-import org.junit.experimental.categories.Category;
+ 
+-@Category(ParallelizableTests.class)
++// Not parallelizable because of unsynchronized concurrent access to the
++// AbstractMetricUpdater.MIN_EXPIRE_AFTER
+ public class DropwizardMetricsIT extends MetricsITBase {
+ 
+   @ClassRule
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/metrics/micrometer/MicrometerMetricsIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/metrics/micrometer/MicrometerMetricsIT.java
+index c38df1e202..29479f27ee 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/metrics/micrometer/MicrometerMetricsIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/metrics/micrometer/MicrometerMetricsIT.java
+@@ -25,7 +25,6 @@ import com.datastax.oss.driver.api.core.metadata.Node;
+ import com.datastax.oss.driver.api.core.metrics.DefaultNodeMetric;
+ import com.datastax.oss.driver.api.core.metrics.DefaultSessionMetric;
+ import com.datastax.oss.driver.api.testinfra.simulacron.SimulacronRule;
+-import com.datastax.oss.driver.categories.ParallelizableTests;
+ import com.datastax.oss.driver.core.metrics.MetricsITBase;
+ import com.datastax.oss.driver.internal.core.context.InternalDriverContext;
+ import com.datastax.oss.driver.internal.core.metrics.MetricId;
+@@ -40,9 +39,9 @@ import io.micrometer.core.instrument.Tag;
+ import io.micrometer.core.instrument.Timer;
+ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+ import org.junit.ClassRule;
+-import org.junit.experimental.categories.Category;
+ 
+-@Category(ParallelizableTests.class)
++// Not parallelizable because of unsynchronized concurrent access to the
++// AbstractMetricUpdater.MIN_EXPIRE_AFTER
+ public class MicrometerMetricsIT extends MetricsITBase {
+ 
+   @ClassRule
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/metrics/microprofile/MicroProfileMetricsIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/metrics/microprofile/MicroProfileMetricsIT.java
+index aa04c058a4..5d0a67f8aa 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/metrics/microprofile/MicroProfileMetricsIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/metrics/microprofile/MicroProfileMetricsIT.java
+@@ -25,7 +25,6 @@ import com.datastax.oss.driver.api.core.metadata.Node;
+ import com.datastax.oss.driver.api.core.metrics.DefaultNodeMetric;
+ import com.datastax.oss.driver.api.core.metrics.DefaultSessionMetric;
+ import com.datastax.oss.driver.api.testinfra.simulacron.SimulacronRule;
+-import com.datastax.oss.driver.categories.ParallelizableTests;
+ import com.datastax.oss.driver.core.metrics.MetricsITBase;
+ import com.datastax.oss.driver.internal.core.context.InternalDriverContext;
+ import com.datastax.oss.driver.internal.core.metrics.MetricId;
+@@ -44,9 +43,9 @@ import org.eclipse.microprofile.metrics.MetricRegistry;
+ import org.eclipse.microprofile.metrics.Tag;
+ import org.eclipse.microprofile.metrics.Timer;
+ import org.junit.ClassRule;
+-import org.junit.experimental.categories.Category;
+ 
+-@Category(ParallelizableTests.class)
++// Not parallelizable because of unsynchronized concurrent access to the
++// AbstractMetricUpdater.MIN_EXPIRE_AFTER
+ public class MicroProfileMetricsIT extends MetricsITBase {
+ 
+   @ClassRule
 diff --git a/test-infra/revapi.json b/test-infra/revapi.json
-index 3cfbc8b53..0fa33a041 100644
+index 3cfbc8b533..0fa33a0415 100644
 --- a/test-infra/revapi.json
 +++ b/test-infra/revapi.json
 @@ -171,6 +171,16 @@
@@ -33,7 +105,7 @@ index 3cfbc8b53..0fa33a041 100644
      ]
    }
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
-index b8b684ee5..0957e6e9b 100644
+index b8b684ee5b..0957e6e9b5 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
 @@ -20,9 +20,14 @@ package com.datastax.oss.driver.api.testinfra.ccm;
@@ -66,7 +138,7 @@ index b8b684ee5..0957e6e9b 100644
    public Statement apply(Statement base, Description description) {
      if (BackendRequirementRule.meetsDescriptionRequirements(description)) {
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
-index 98739e771..36543ae76 100644
+index 98739e7715..36543ae762 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 @@ -57,6 +57,10 @@ public class CcmBridge implements AutoCloseable {
@@ -233,7 +305,7 @@ index 98739e771..36543ae76 100644
            dseConfiguration,
            dseRawYaml,
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
-index 58bafd438..4dcec76b5 100644
+index 58bafd438f..4dcec76b5d 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
 @@ -17,6 +17,7 @@
@@ -277,7 +349,7 @@ index 58bafd438..4dcec76b5 100644
        return new CustomCcmRule(bridgeBuilder.build());
      }
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
-index ac2507cec..3708d3ca6 100644
+index ac2507cec5..3708d3ca6a 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/DefaultCcmBridgeBuilderCustomizer.java
 @@ -26,12 +26,13 @@ public class DefaultCcmBridgeBuilderCustomizer {
