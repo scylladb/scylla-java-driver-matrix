@@ -1,0 +1,50 @@
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java b/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java
+index 7fa9c8550a..9ac6b9135e 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/ControlConnectionTest.java
+@@ -119,13 +119,14 @@ public class ControlConnectionTest extends CCMTestsSupport {
+     Cluster cluster = register(createClusterBuilder().build());
+     Session session = cluster.connect();
+     session.execute(
+-        "create keyspace ks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
+-    session.execute("create type ks.foo (i int)");
++        "create keyspace ControlConnectionTest_ks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
++    session.execute("create type ControlConnectionTest_ks.foo (i int)");
+     cluster.close();
+ 
+     // Second driver instance: read UDT definition
+     Cluster cluster2 = register(createClusterBuilder().build());
+-    UserType fooType = cluster2.getMetadata().getKeyspace("ks").getUserType("foo");
++    UserType fooType =
++        cluster2.getMetadata().getKeyspace("ControlConnectionTest_ks").getUserType("foo");
+ 
+     assertThat(fooType.getFieldNames()).containsExactly("i");
+   }
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/PreparedStatementTest.java b/driver-core/src/test/java/com/datastax/driver/core/PreparedStatementTest.java
+index 168b86730f..27bf7ac5aa 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/PreparedStatementTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/PreparedStatementTest.java
+@@ -775,6 +775,7 @@ public class PreparedStatementTest extends CCMTestsSupport {
+    * @since 2.2.0
+    */
+   @Test(groups = "long")
++  @ScyllaSkip /* @IntegrationTestDisabledScyllaUnsupportedFunctionality @IntegrationTestDisabledScyllaQueryTrace */
+   public void should_create_tombstone_when_null_value_on_bound_statement() {
+     PreparedStatement prepared =
+         session().prepare("INSERT INTO " + SIMPLE_TABLE + " (k, i) VALUES (?, ?)");
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
+index ea75f84544..ea70e9081a 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
+@@ -38,7 +38,9 @@ import org.slf4j.LoggerFactory;
+ import org.testng.annotations.AfterMethod;
+ import org.testng.annotations.Test;
+ 
+-@CCMConfig(dirtiesContext = true)
++@CCMConfig(
++    dirtiesContext = true,
++    jvmArgs = {"--smp", "1", "--max-networking-io-control-blocks", "15000"})
+ public class SessionStressTest extends CCMTestsSupport {
+ 
+   private static final Logger logger = LoggerFactory.getLogger(SessionStressTest.class);
+
