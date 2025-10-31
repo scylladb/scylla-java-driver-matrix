@@ -1,0 +1,71 @@
+tests:
+    # Unsupported CUSTOM INDEX class org.apache.cassandra.index.sasi.SASIIndex. Note that currently, Scylla does not support SASI or any other CUSTOM INDEX class.
+    - DeleteIT
+    - InsertIT
+    - GetEntityIT
+    - UpdateIT
+    - SelectCustomWhereClauseIT
+    - SelectIT
+    - SetEntityIT
+    - UpdateCustomIfClauseIT
+    - CustomResultTypeIT
+    - DeleteReactiveIT
+    - FluentEntityIT
+    - ImmutableEntityIT
+    - InsertReactiveIT
+    - SchemaValidationIT
+    - SelectReactiveIT
+    - UpdateReactiveIT
+
+    # Unknown property 'additional_write_policy'
+    - DescribeIT
+
+    # RandomPartitioner isn't supported by scylla anymore
+    - RandomTokenIT
+    - RandomTokenVnodesIT
+
+    # ByteOrderedPartitioner isn't supported by scylla anymore
+    - ByteOrderedTokenVnodesIT
+    - ByteOrderedTokenIT
+
+    # ServerError: Can't find a column family with UUID 963ec1e0-1771-11ea-8115-000000000000
+    - CaseSensitiveUdtIT
+
+    # Cannot run program "*/java-driver/integration-tests/run.sh" (in directory "*/java-driver/integration-tests"): error=2, No such file or directory
+    - CloudIT
+
+    # ssl issue - init query OPTIONS: error writing )
+    - DefaultSslEngineFactoryIT
+    - DefaultSslEngineFactoryPropertyBasedWithClientAuthIT
+    - DefaultSslEngineFactoryWithClientAuthIT
+    - DefaultSslEngineFactoryHostnameValidationIT
+    - ProgrammaticSslIT
+    - DefaultSslEngineFactoryPropertyBasedIT
+
+    # error: unrecognised option '-Dcassandra.superuser_setup_delay_ms=0'
+    - PlainTextAuthProviderIT
+
+    # I don't know if scylla has the same thing for warnings, i.e. noticeable by the driver
+    - ExecutionInfoWarningsIT
+
+    # weird errors, would need to investigate further
+    - OsgiIT
+    - OsgiLz4IT
+    - OsgiShadedIT
+    - OsgiSnappyIT
+    - OsgiCustomLoadBalancingPolicyIT
+
+    - DriverExecutionProfileReloadIT
+
+    # Can't use nowInSeconds with protocol V4
+    - NowInSecondsIT
+
+    # Fails to bind to an address on setup sometimes (Already in use error). 
+    # Directly responsible code not in driver's repo.
+    # Needs a workaround.
+    - PeersV2NodeRefreshIT
+
+    # Looks to be flaky. Locally generally does not fail. Needs investigation.
+    # When it fails it fails due to leak, see comments in scylla-java-driver-matrix/pull/83
+    # for stacktrace.
+    - NettyResourceLeakDetectionIT
