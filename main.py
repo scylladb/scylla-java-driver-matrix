@@ -13,7 +13,7 @@ from email_sender import send_mail, create_report, get_driver_origin_remote
 logging.basicConfig(level=logging.INFO)
 
 
-def main(java_driver_git, scylla_install_dir, tests, versions, driver_type,scylla_version, recipients):
+def main(java_driver_git, scylla_install_dir, tests, versions, driver_type, scylla_version, recipients):
     status = 0
     results = {}
     logging.info("=== Going to test those versions: %s", versions)

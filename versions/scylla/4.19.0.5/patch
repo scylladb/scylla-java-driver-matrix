@@ -1,0 +1,137 @@
+Subject: [PATCH] 1
+---
+Index: test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java	(revision 075c42e72d90fa0b61d10e895a39723ac911a5fd)
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java	(date 1771255754698)
+@@ -17,6 +17,7 @@
+  */
+ package com.datastax.oss.driver.api.testinfra.ccm;
+ 
++import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.concurrent.atomic.AtomicReference;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+@@ -33,6 +34,7 @@
+ public class CustomCcmRule extends BaseCcmRule {
+ 
+   private static final Logger LOG = LoggerFactory.getLogger(CustomCcmRule.class);
++  private static AtomicInteger cluster_id = new AtomicInteger(1);
+   private static final AtomicReference<CustomCcmRule> CURRENT = new AtomicReference<>();
+ 
+   CustomCcmRule(CcmBridge ccmBridge) {
+@@ -84,6 +86,10 @@
+ 
+     private final CcmBridge.Builder bridgeBuilder = CcmBridge.builder();
+ 
++    public Builder() {
++      this.withIdPrefix(Integer.toString(cluster_id.incrementAndGet()));
++    }
++
+     public Builder withNodes(int... nodes) {
+       bridgeBuilder.withNodes(nodes);
+       return this;
+@@ -133,6 +139,11 @@
+       bridgeBuilder.withSslAuth();
+       return this;
+     }
++
++    public Builder withIdPrefix(String idPrefix) {
++      bridgeBuilder.withIdPrefix(idPrefix);
++      return this;
++    }
+ 
+     public CustomCcmRule build() {
+       return new CustomCcmRule(bridgeBuilder.build());
+Index: test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java	(revision 075c42e72d90fa0b61d10e895a39723ac911a5fd)
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java	(date 1771255924669)
+@@ -73,6 +73,8 @@
+ 
+   public static final Version VERSION = Objects.requireNonNull(parseCcmVersion());
+ 
++  public static final String SCYLLA_VERSION = System.getProperty("scylla.version");
++
+   public static final String INSTALL_DIRECTORY = System.getProperty("ccm.directory");
+ 
+   public static final String BRANCH = System.getProperty("ccm.branch");
+@@ -343,7 +345,8 @@
+       if (shouldReplace) {
+         versionString = versionString.replace(".0-", ".");
+       }
+-      return "release:" + versionString;
++      // Dropping release prefix to force CCM to use version downloaded locally by Jenkins since
++      // resolving proper CCM version argument value based on the Jenkins's scylla-version was
++      // proven difficult.
++      return versionString;
+     }
+     // for 4.0 or 5.0 pre-releases, the CCM version string needs to be "4.0-alpha1", "4.0-alpha2" or
+     // "5.0-beta1" Version.toString() always adds a patch value, even if it's not specified when
+Index: integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java	(revision 075c42e72d90fa0b61d10e895a39723ac911a5fd)
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/PeersV2NodeRefreshIT.java	(date 1771255573954)
+@@ -29,6 +29,7 @@
+ import com.datastax.oss.simulacron.server.BoundCluster;
+ import com.datastax.oss.simulacron.server.Server;
+ import java.util.concurrent.ExecutionException;
++import org.junit.After;
+ import org.junit.AfterClass;
+ import org.junit.BeforeClass;
+ import org.junit.Test;
+@@ -38,6 +39,7 @@
+ 
+   private static Server peersV2Server;
+   private static BoundCluster cluster;
++  private static CqlSession session;
+ 
+   @BeforeClass
+   public static void setup() {
+@@ -55,6 +57,13 @@
+     }
+   }
+ 
++  @After
++  public void closeSession() {
++    if (session != null) {
++      session.close();
++    }
++  }
++
+   @Test
+   public void should_successfully_send_peers_v2_node_refresh_query()
+       throws InterruptedException, ExecutionException {
+Index: integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java	(revision 075c42e72d90fa0b61d10e895a39723ac911a5fd)
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java	(date 1771255573930)
+@@ -312,8 +312,10 @@
+     int counter = 0;
+     while (filteredNodes.size() == 1) {
+       counter++;
+-      if (counter == 255) {
+-        LOG.error("Completed 254 runs. Breaking.");
++      // Capping to 99 in the patch because that's what ccm create --help says is the max id
++      // allowed
++      if (counter == 100) {
++        LOG.error("Completed 100 runs. Breaking.");
+         break;
+       }
+       LOG.warn(

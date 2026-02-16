@@ -279,7 +279,7 @@ index 2e137b0854..6c311cd4f2 100644
        Version requirement, String description, boolean lessThan, boolean dse) {
      return new Statement() {
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
-index 7b4d28cedf..2c8edd1e5a 100644
+index 7b4d28cedf..88fe5b9809 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CcmBridge.java
 @@ -68,6 +68,10 @@ public class CcmBridge implements AutoCloseable {
@@ -319,7 +319,19 @@ index 7b4d28cedf..2c8edd1e5a 100644
      this.cassandraConfiguration = cassandraConfiguration;
      this.dseConfiguration = dseConfiguration;
      this.rawDseYaml = dseConfigurationRawYaml;
-@@ -367,8 +370,8 @@ public class CcmBridge implements AutoCloseable {
+@@ -329,7 +332,10 @@ public class CcmBridge implements AutoCloseable {
+       if (shouldReplace) {
+         versionString = versionString.replace(".0-", ".");
+       }
+-      return "release:" + versionString;
++      // Dropping release prefix to force CCM to use version downloaded locally by Jenkins since
++      // resolving proper CCM version argument value based on the Jenkins's scylla-version was
++      // proven difficult.
++      return versionString;
+     }
+     // for 4.0 pre-releases, the CCM version string needs to be "4.0-alpha1" or "4.0-alpha2"
+     // Version.toString() always adds a patch value, even if it's not specified when parsing.
+@@ -367,8 +373,8 @@ public class CcmBridge implements AutoCloseable {
        execute(
            "create",
            CLUSTER_NAME,
@@ -330,7 +342,7 @@ index 7b4d28cedf..2c8edd1e5a 100644
            "-n",
            Arrays.stream(nodes).mapToObj(n -> "" + n).collect(Collectors.joining(":")),
            createOptions.stream().collect(Collectors.joining(" ")));
-@@ -492,7 +495,8 @@ public class CcmBridge implements AutoCloseable {
+@@ -492,7 +498,8 @@ public class CcmBridge implements AutoCloseable {
    }
  
    public void addWithoutStart(int n, String dc) {
@@ -340,7 +352,7 @@ index 7b4d28cedf..2c8edd1e5a 100644
      ArrayList<String> args = new ArrayList<>(Arrays.asList(initialArgs));
      if (getDseVersion().isPresent()) {
        args.add("--dse");
-@@ -617,7 +621,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -617,7 +624,7 @@ public class CcmBridge implements AutoCloseable {
    }
  
    public String getNodeIpAddress(int nodeId) {
@@ -349,7 +361,7 @@ index 7b4d28cedf..2c8edd1e5a 100644
    }
  
    private static String IN_MS_STR = "_in_ms";
-@@ -664,7 +668,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -664,7 +671,7 @@ public class CcmBridge implements AutoCloseable {
      private final Map<String, Object> dseConfiguration = new LinkedHashMap<>();
      private final List<String> dseRawYaml = new ArrayList<>();
      private final List<String> jvmArgs = new ArrayList<>();
@@ -358,7 +370,7 @@ index 7b4d28cedf..2c8edd1e5a 100644
      private final List<String> createOptions = new ArrayList<>();
      private final List<String> dseWorkloads = new ArrayList<>();
  
-@@ -708,8 +712,8 @@ public class CcmBridge implements AutoCloseable {
+@@ -708,8 +715,8 @@ public class CcmBridge implements AutoCloseable {
        return this;
      }
  
@@ -369,7 +381,7 @@ index 7b4d28cedf..2c8edd1e5a 100644
        return this;
      }
  
-@@ -778,7 +782,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -778,7 +785,7 @@ public class CcmBridge implements AutoCloseable {
        return new CcmBridge(
            configDirectory,
            nodes,
