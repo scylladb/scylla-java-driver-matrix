@@ -1,0 +1,49 @@
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
+index 344678c814..06ddcb7383 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
+@@ -207,11 +207,11 @@ public class CCMBridge implements CCMAccess {
+       installArgs.add("-v git:" + branch.trim().replaceAll("\"", ""));
+     } else if (inputScyllaVersion != null && !inputScyllaVersion.trim().isEmpty()) {
+       installArgs.add(" --scylla ");
+-      if (isVersionNumber(inputScyllaVersion)) {
+-        installArgs.add("-v release:" + inputScyllaVersion);
+-      } else {
+-        installArgs.add("-v " + inputScyllaVersion);
+-      }
++      // Dropping release prefix to force CCM to use version downloaded locally by Jenkins since
++      // resolving proper CCM version argument value based on the Jenkins's scylla-version was
++      // proven difficult.
++      installArgs.add("-v " + inputScyllaVersion);
++
+       // Detect Scylla Enterprise - it should start with
+       // a 4-digit year.
+       if (inputScyllaVersion.matches("\\d{4}\\..*")) {
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/PreparedStatementTest.java b/driver-core/src/test/java/com/datastax/driver/core/PreparedStatementTest.java
+index 2b09638d36..27bf7ac5aa 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/PreparedStatementTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/PreparedStatementTest.java
+@@ -775,7 +775,7 @@ public class PreparedStatementTest extends CCMTestsSupport {
+    * @since 2.2.0
+    */
+   @Test(groups = "long")
+-  @ScyllaSkip
++  @ScyllaSkip /* @IntegrationTestDisabledScyllaUnsupportedFunctionality @IntegrationTestDisabledScyllaQueryTrace */
+   public void should_create_tombstone_when_null_value_on_bound_statement() {
+     PreparedStatement prepared =
+         session().prepare("INSERT INTO " + SIMPLE_TABLE + " (k, i) VALUES (?, ?)");
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
+index ea75f84544..ea70e9081a 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
+@@ -38,7 +38,9 @@ import org.slf4j.LoggerFactory;
+ import org.testng.annotations.AfterMethod;
+ import org.testng.annotations.Test;
+ 
+-@CCMConfig(dirtiesContext = true)
++@CCMConfig(
++    dirtiesContext = true,
++    jvmArgs = {"--smp", "1", "--max-networking-io-control-blocks", "15000"})
+ public class SessionStressTest extends CCMTestsSupport {
+ 
+   private static final Logger logger = LoggerFactory.getLogger(SessionStressTest.class);
