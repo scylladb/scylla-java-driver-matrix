@@ -17,7 +17,7 @@ index b6714f07fe..8a91c6fb1c 100644
    File getCcmDir();
  
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
-index 4c9ba61fc5..62f674a885 100644
+index 4c9ba61fc5..03ee7a2e68 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
 @@ -194,6 +194,7 @@ public class CCMBridge implements CCMAccess {
@@ -28,20 +28,18 @@ index 4c9ba61fc5..62f674a885 100644
  
      String installDirectory = System.getProperty("cassandra.directory");
      String branch = System.getProperty("cassandra.branch");
-@@ -206,8 +207,11 @@ public class CCMBridge implements CCMAccess {
+@@ -206,7 +207,10 @@ public class CCMBridge implements CCMAccess {
        installArgs.add("-v git:" + branch.trim().replaceAll("\"", ""));
      } else if (inputScyllaVersion != null && !inputScyllaVersion.trim().isEmpty()) {
        installArgs.add(" --scylla ");
 -      installArgs.add("-v release:" + inputScyllaVersion);
--
-+      if (isVersionNumber(inputScyllaVersion)) {
-+        installArgs.add("-v release:" + inputScyllaVersion);
-+      } else {
-+        installArgs.add("-v " + inputScyllaVersion);
-+      }
++      // Dropping release prefix to force CCM to use version downloaded locally by Jenkins since
++      // resolving proper CCM version argument value based on the Jenkins's scylla-version was
++      // proven difficult.
++      installArgs.add("-v " + inputScyllaVersion);
+ 
        // Detect Scylla Enterprise - it should start with
        // a 4-digit year.
-       if (inputScyllaVersion.matches("\\d{4}\\..*")) {
 @@ -246,8 +250,6 @@ public class CCMBridge implements CCMAccess {
      }
      ENVIRONMENT_MAP = ImmutableMap.copyOf(envMap);
