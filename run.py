@@ -110,7 +110,7 @@ class Run:
             if file_path.name.startswith("patch"):
                 try:
                     logging.info("Show patch's statistics for file '%s'", file_path)
-                    self._run_command_in_shell(f"git apply --stat --allow-empty {file_path}")
+                    self._run_command_in_shell(f"git apply --stat {file_path}")
                     logging.info("Detect patch's errors for file '%s'", file_path)
                     self._run_command_in_shell(f"git apply -v --check {file_path}")
                     logging.info("Applying patch file '%s'", file_path)
