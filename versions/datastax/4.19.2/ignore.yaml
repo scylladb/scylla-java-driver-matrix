@@ -1,3 +1,37 @@
-# `crc_check_chance` option is not supported, defaulting to 1.0
-# See: https://github.com/scylladb/scylladb/blob/7d6f734a519aac9a9a7da84b2ee3a55d11aa1cf4/docs/cql/ddl.rst?plain=1#L924
-- RelationOptionsIT
+tests:
+    # Unsupported CUSTOM INDEX class org.apache.cassandra.index.sasi.SASIIndex. Note that currently, Scylla does not support SASI or any other CUSTOM INDEX class.
+    - InsertIT
+    - SelectCustomWhereClauseIT
+    - UpdateCustomIfClauseIT
+    - SchemaValidationIT
+    - UpdateReactiveIT
+
+    # Unknown property 'additional_write_policy'
+    - DescribeIT
+
+    # RandomPartitioner isn't supported by scylla anymore
+    - RandomTokenIT
+
+    # ssl issue - init query OPTIONS: error writing )
+    - DefaultSslEngineFactoryIT
+    - DefaultSslEngineFactoryPropertyBasedWithClientAuthIT
+    - DefaultSslEngineFactoryWithClientAuthIT
+    - DefaultSslEngineFactoryHostnameValidationIT
+    - ProgrammaticSslIT
+    - DefaultSslEngineFactoryPropertyBasedIT
+
+    # error: unrecognised option '-Dcassandra.superuser_setup_delay_ms=0'
+    - PlainTextAuthProviderIT
+
+    # I don't know if scylla has the same thing for warnings, i.e. noticeable by the driver
+    - ExecutionInfoWarningsIT
+
+    # Can't use nowInSeconds with protocol V4
+    - NowInSecondsIT
+
+    # `crc_check_chance` option is not supported, defaulting to 1.0
+    # See: https://github.com/scylladb/scylladb/blob/7d6f734a519aac9a9a7da84b2ee3a55d11aa1cf4/docs/cql/ddl.rst?plain=1#L924
+    - RelationOptionsIT
+
+    # Ignoring until https://scylladb.atlassian.net/browse/SCYLLADB-745 is resolved
+    - RequestIdGeneratorIT
