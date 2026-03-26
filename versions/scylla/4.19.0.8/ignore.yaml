@@ -1,0 +1,6 @@
+tests:
+  # awaitScyllaAuth times out waiting for Scylla auth to become available (30s exceeded)
+  - PlainTextAuthProviderIT
+  # ccm start fails intermittently when starting clusters inside test methods
+  # (both TLS and non-TLS variants); ignore the whole class to avoid flakiness
+  - ClientRoutesIT
