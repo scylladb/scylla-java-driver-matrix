@@ -11,3 +11,6 @@ tests:
   # as ScyllaSkip mark doesn't seem to function correctly (skipping, but then failing the test again anyway)
   # the class is disabled due to unsupported options used for Scylla (should_keep_reconnecting_on_authentication_error)
   - ReconnectionTest
+
+  # scylla-ccm no longer supports --sni-proxy option
+  - ScyllaSniProxyTest
