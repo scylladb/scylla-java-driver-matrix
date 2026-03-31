@@ -17,7 +17,7 @@ index b6714f07fe..8a91c6fb1c 100644
    File getCcmDir();
  
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
-index 4c9ba61fc5..03ee7a2e68 100644
+index 4c9ba61fc5..fa14e1a47a 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
 @@ -194,6 +194,7 @@ public class CCMBridge implements CCMAccess {
@@ -102,7 +102,24 @@ index 4c9ba61fc5..03ee7a2e68 100644
      this.ipPrefix = ipPrefix;
      this.storagePort = storagePort;
      this.thriftPort = thriftPort;
-@@ -465,6 +493,11 @@ public class CCMBridge implements CCMAccess {
+@@ -448,10 +476,14 @@ public class CCMBridge implements CCMAccess {
+ 
+   @Override
+   public InetSocketAddress jmxAddressOfNode(int n) {
++    // For dynamically added nodes (via add()), jmxPorts[] may not have an entry since it is
++    // sized only for nodes declared at cluster-creation time. Fall back to the same deterministic
++    // formula used in add().
++    int port = (n - 1 < jmxPorts.length) ? jmxPorts[n - 1] : (7000 + n * 100);
+     if (GLOBAL_SCYLLA_VERSION_NUMBER != null) {
+-      return new InetSocketAddress(ipOfNode(n), jmxPorts[n - 1]);
++      return new InetSocketAddress(ipOfNode(n), port);
+     } else {
+-      return new InetSocketAddress("localhost", jmxPorts[n - 1]);
++      return new InetSocketAddress("localhost", port);
+     }
+   }
+ 
+@@ -465,6 +497,11 @@ public class CCMBridge implements CCMAccess {
      return dseVersion;
    }
  
@@ -114,7 +131,37 @@ index 4c9ba61fc5..03ee7a2e68 100644
    @Override
    public File getCcmDir() {
      return ccmDir;
-@@ -792,7 +825,25 @@ public class CCMBridge implements CCMAccess {
+@@ -705,23 +742,25 @@ public class CCMBridge implements CCMAccess {
+   public void add(int dc, int n) {
+     logger.debug(
+         String.format("Adding: node %s (%s%s:%s) to %s", n, ipPrefix, n, binaryPort, this));
+-    String thriftItf = ipOfNode(n) + ":" + thriftPort;
+     String storageItf = ipOfNode(n) + ":" + storagePort;
+     String binaryItf = ipOfNode(n) + ":" + binaryPort;
+     String remoteLogItf = ipOfNode(n) + ":" + TestUtils.findAvailablePort();
++    // Use a deterministic JMX port formula to avoid TOCTOU races from findAvailablePort()
++    // and to match the fallback in jmxAddressOfNode() for dynamically added nodes (jmxPorts[]
++    // is sized only for nodes declared at cluster-creation time).
++    int jmxPort = 7000 + n * 100;
+     execute(
+         CCM_COMMAND
+-            + " add node%d -d dc%s -i %s%d -t %s -l %s --binary-itf %s -j %d -r %s -s -b"
++            + " add node%d -d dc%s -i %s%d -l %s --binary-itf %s -j %d -r %s -s -b"
+             + (isDSE ? " --dse" : "")
+             + (isScylla ? " --scylla" : ""),
+         n,
+         dc,
+         ipPrefix,
+         n,
+-        thriftItf,
+         storageItf,
+         binaryItf,
+-        TestUtils.findAvailablePort(),
++        jmxPort,
+         remoteLogItf);
+   }
+ 
+@@ -792,7 +831,25 @@ public class CCMBridge implements CCMAccess {
      execute(CCM_COMMAND + " node%d setworkload %s", node, workloadStr);
    }
  
@@ -141,7 +188,7 @@ index 4c9ba61fc5..03ee7a2e68 100644
      String fullCommand = String.format(command, args) + " --config-dir=" + ccmDir;
      Closer closer = Closer.create();
      // 10 minutes timeout
-@@ -856,6 +907,10 @@ public class CCMBridge implements CCMAccess {
+@@ -856,6 +913,10 @@ public class CCMBridge implements CCMAccess {
      return sw.toString();
    }
  
@@ -152,7 +199,7 @@ index 4c9ba61fc5..03ee7a2e68 100644
    /**
     * Waits for a host to be up by pinging the TCP socket directly, without using the Java driver's
     * API.
-@@ -949,10 +1004,12 @@ public class CCMBridge implements CCMAccess {
+@@ -949,10 +1010,12 @@ public class CCMBridge implements CCMAccess {
      private static final Pattern RANDOM_PORT_PATTERN = Pattern.compile(RANDOM_PORT);
  
      private String ipPrefix = TestUtils.IP_PREFIX;
@@ -165,7 +212,7 @@ index 4c9ba61fc5..03ee7a2e68 100644
      private boolean startSniProxy = false;
      private VersionNumber version = null;
      private final Set<String> createOptions = new LinkedHashSet<String>();
-@@ -991,6 +1048,15 @@ public class CCMBridge implements CCMAccess {
+@@ -991,6 +1054,15 @@ public class CCMBridge implements CCMAccess {
        return this;
      }
  
@@ -181,7 +228,7 @@ index 4c9ba61fc5..03ee7a2e68 100644
      /** Enables SSL encryption. */
      public Builder withSSL() {
        cassandraConfiguration.put("client_encryption_options.enabled", "true");
-@@ -1035,8 +1101,8 @@ public class CCMBridge implements CCMAccess {
+@@ -1035,8 +1107,8 @@ public class CCMBridge implements CCMAccess {
      }
  
      /**
@@ -192,7 +239,7 @@ index 4c9ba61fc5..03ee7a2e68 100644
       */
      public Builder withVersion(VersionNumber version) {
        this.version = version;
-@@ -1049,6 +1115,12 @@ public class CCMBridge implements CCMAccess {
+@@ -1049,6 +1121,12 @@ public class CCMBridge implements CCMAccess {
        return this;
      }
  
@@ -205,7 +252,7 @@ index 4c9ba61fc5..03ee7a2e68 100644
      /**
       * Free-form options that will be added at the end of the {@code ccm create} command (defaults
       * to {@link #CASSANDRA_INSTALL_ARGS} if this is never called).
-@@ -1115,19 +1187,30 @@ public class CCMBridge implements CCMAccess {
+@@ -1115,19 +1193,30 @@ public class CCMBridge implements CCMAccess {
        // be careful NOT to alter internal state (hashCode/equals) during build!
        String clusterName = TestUtils.generateIdentifier("ccm_");
  
@@ -236,7 +283,7 @@ index 4c9ba61fc5..03ee7a2e68 100644
          dseVersion = null;
          cassandraVersion = this.version;
        }
-@@ -1182,6 +1265,7 @@ public class CCMBridge implements CCMAccess {
+@@ -1182,6 +1271,7 @@ public class CCMBridge implements CCMAccess {
                clusterName,
                cassandraVersion,
                dseVersion,
@@ -244,7 +291,7 @@ index 4c9ba61fc5..03ee7a2e68 100644
                ipPrefix,
                storagePort,
                thriftPort,
-@@ -1391,6 +1475,7 @@ public class CCMBridge implements CCMAccess {
+@@ -1391,6 +1481,7 @@ public class CCMBridge implements CCMAccess {
  
        if (ipPrefix != builder.ipPrefix) return false;
        if (dse != builder.dse) return false;

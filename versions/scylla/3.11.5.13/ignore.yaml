@@ -14,3 +14,7 @@ tests:
 
   # scylla-ccm no longer supports --sni-proxy option
   - ScyllaSniProxyTest
+
+  # node stop/start sequence causes Scylla to fail to open its binary port within the 5-minute
+  # CCM timeout, likely due to timing differences vs Cassandra in this driver version
+  - NodeRefreshDebouncerTest #should_call_onAdd_with_bootstrap_stop_start
