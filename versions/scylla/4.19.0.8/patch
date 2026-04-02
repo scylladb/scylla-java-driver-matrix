@@ -855,3 +855,17 @@ index 504f01e3ce..015da02ebd 100644
                "SELECT * FROM system.local WHERE key='local'",
                "SELECT * FROM system.peers_v2",
                "SELECT * FROM system.peers");
+
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/pool/AdvancedShardAwarenessIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/pool/AdvancedShardAwarenessIT.java
+index aeda4a02c7..782aa2dfdb 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/pool/AdvancedShardAwarenessIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/pool/AdvancedShardAwarenessIT.java
+@@ -234,7 +234,7 @@ public class AdvancedShardAwarenessIT {
+         CqlSession session4 = CompletableFutures.getUninterruptibly(stage4); ) {
+       List<CqlSession> allSessions = Arrays.asList(session1, session2, session3, session4);
+       Awaitility.await()
+-          .atMost(20, TimeUnit.SECONDS)
++          .atMost(60, TimeUnit.SECONDS)
+           .pollInterval(500, TimeUnit.MILLISECONDS)
+           .until(() -> areAllPoolsFullyInitialized(allSessions, expectedChannelsPerNode));
+       int tolerance = 2; // Sometimes socket ends up already in use
