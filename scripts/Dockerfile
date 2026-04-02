@@ -33,4 +33,5 @@ RUN echo 2 | update-alternatives --config java
 
 ADD requirements.txt requirements.txt
 RUN pip install -r requirements.txt
+RUN pip install ruamel.yaml
 
