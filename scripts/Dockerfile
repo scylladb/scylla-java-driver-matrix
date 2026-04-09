@@ -18,7 +18,7 @@ RUN apt-get -y update \
     && apt-get install -y  temurin-8-jdk git docker-ce-cli libapr1 \
     && apt-get install -y  temurin-11-jdk  \
     && arch="$(dpkg --print-architecture)" \
-    && wget "https://snapshot.debian.org/archive/debian-security/20230919T203833Z/pool/updates/main/o/openssl1.1/libssl1.1_1.1.1w-0+deb11u1_${arch}.deb" \
+    && wget "https://snapshot.debian.org/archive/debian/20231003T205808Z/pool/main/o/openssl/libssl1.1_1.1.1w-0+deb11u1_${arch}.deb" \
     && apt-get install -y "./libssl1.1_1.1.1w-0+deb11u1_${arch}.deb" \
     && rm -f "./libssl1.1_1.1.1w-0+deb11u1_${arch}.deb" \
     && rm -rf /var/lib/apt/lists/*  \
@@ -35,4 +35,3 @@ RUN echo 2 | update-alternatives --config java
 ADD requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 RUN pip install ruamel.yaml
-
