@@ -60,11 +60,6 @@ tests:
     # Can't use nowInSeconds with protocol V4
     - NowInSecondsIT
 
-    # Fails to bind to an address on setup sometimes (Already in use error). 
-    # Directly responsible code not in driver's repo.
-    # Needs a workaround.
-    - PeersV2NodeRefreshIT
-
     # Looks to be flaky. Locally generally does not fail. Needs investigation.
     # When it fails it fails due to leak, see comments in scylla-java-driver-matrix/pull/83
     # for stacktrace.

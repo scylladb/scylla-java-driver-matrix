@@ -36,13 +36,6 @@ tests:
     # Ignoring until https://scylladb.atlassian.net/browse/SCYLLADB-745 is resolved
     - RequestIdGeneratorIT
 
-    # PeersV2NodeRefreshIT fails with BindNodeException on hardcoded port 49152 when
-    # the port is still occupied from a prior test run in the same CI job.
-    # Root cause: NodePerPortResolver missing release() override + shared static singleton.
-    # Fix: https://github.com/scylladb/java-simulacron/pull/5 (issue #4)
-    # TODO: remove this entry once the simulacron fix is released and picked up in the driver pom.xml
-    - PeersV2NodeRefreshIT
-
     # Flaky timing-based test: preparedStmtCacheRemoveLatch did not trigger before timeout.
     # Fails intermittently regardless of Scylla version or driver changes.
     - PreparedStatementCachingIT

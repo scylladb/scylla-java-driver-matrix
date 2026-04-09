@@ -735,6 +735,54 @@ index aa04c058a4..5d0a67f8aa 100644
  public class MicroProfileMetricsIT extends MetricsITBase {
  
    @ClassRule
+diff --git a/integration-tests/pom.xml b/integration-tests/pom.xml
+index 1052f96ae..687355a70 100644
+--- a/integration-tests/pom.xml
++++ b/integration-tests/pom.xml
+@@ -189,7 +189,7 @@
+       <scope>test</scope>
+     </dependency>
+     <dependency>
+-      <groupId>com.datastax.oss.simulacron</groupId>
++      <groupId>com.scylladb.oss.simulacron</groupId>
+       <artifactId>simulacron-native-server</artifactId>
+       <scope>test</scope>
+     </dependency>
+diff --git a/pom.xml b/pom.xml
+index ecb800b7e..45796fbcc 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -83,7 +83,7 @@
+     <felix.version>7.0.1</felix.version>
+     <pax-exam.version>4.13.4</pax-exam.version>
+     <pax-url.version>2.6.4</pax-url.version>
+-    <simulacron.version>0.11.0</simulacron.version>
++    <simulacron.version>0.14.0.0</simulacron.version>
+     <jsr353-api.version>1.1.4</jsr353-api.version>
+     <jersey.version>2.31</jersey.version>
+     <hk2.version>2.5.0</hk2.version>
+@@ -246,7 +246,7 @@
+         <version>${rxjava.version}</version>
+       </dependency>
+       <dependency>
+-        <groupId>com.datastax.oss.simulacron</groupId>
++        <groupId>com.scylladb.oss.simulacron</groupId>
+         <artifactId>simulacron-native-server</artifactId>
+         <version>${simulacron.version}</version>
+       </dependency>
+diff --git a/test-infra/pom.xml b/test-infra/pom.xml
+index 0252683ca..d5d1470a9 100644
+--- a/test-infra/pom.xml
++++ b/test-infra/pom.xml
+@@ -60,7 +60,7 @@
+     </dependency>
+     <!-- only required for Simulacron tests -->
+     <dependency>
+-      <groupId>com.datastax.oss.simulacron</groupId>
++      <groupId>com.scylladb.oss.simulacron</groupId>
+       <artifactId>simulacron-native-server</artifactId>
+       <optional>true</optional>
+     </dependency>
 diff --git a/test-infra/revapi.json b/test-infra/revapi.json
 index c75a98cb4a..3660492368 100644
 --- a/test-infra/revapi.json
