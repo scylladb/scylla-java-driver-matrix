@@ -735,54 +735,6 @@ index aa04c058a..5d0a67f8a 100644
  public class MicroProfileMetricsIT extends MetricsITBase {
  
    @ClassRule
-diff --git a/integration-tests/pom.xml b/integration-tests/pom.xml
-index 166611914..ead8bcfa8 100644
---- a/integration-tests/pom.xml
-+++ b/integration-tests/pom.xml
-@@ -189,7 +189,7 @@
-       <scope>test</scope>
-     </dependency>
-     <dependency>
--      <groupId>com.datastax.oss.simulacron</groupId>
-+      <groupId>com.scylladb.oss.simulacron</groupId>
-       <artifactId>simulacron-native-server</artifactId>
-       <scope>test</scope>
-     </dependency>
-diff --git a/pom.xml b/pom.xml
-index 355449acf..d5dc599c8 100644
---- a/pom.xml
-+++ b/pom.xml
-@@ -83,7 +83,7 @@
-     <felix.version>7.0.1</felix.version>
-     <pax-exam.version>4.13.4</pax-exam.version>
-     <pax-url.version>2.6.4</pax-url.version>
--    <simulacron.version>0.11.0</simulacron.version>
-+    <simulacron.version>0.14.0.0</simulacron.version>
-     <jsr353-api.version>1.1.4</jsr353-api.version>
-     <jersey.version>2.31</jersey.version>
-     <hk2.version>2.5.0</hk2.version>
-@@ -246,7 +246,7 @@
-         <version>${rxjava.version}</version>
-       </dependency>
-       <dependency>
--        <groupId>com.datastax.oss.simulacron</groupId>
-+        <groupId>com.scylladb.oss.simulacron</groupId>
-         <artifactId>simulacron-native-server</artifactId>
-         <version>${simulacron.version}</version>
-       </dependency>
-diff --git a/test-infra/pom.xml b/test-infra/pom.xml
-index e61f4f282..a0678ba73 100644
---- a/test-infra/pom.xml
-+++ b/test-infra/pom.xml
-@@ -60,7 +60,7 @@
-     </dependency>
-     <!-- only required for Simulacron tests -->
-     <dependency>
--      <groupId>com.datastax.oss.simulacron</groupId>
-+      <groupId>com.scylladb.oss.simulacron</groupId>
-       <artifactId>simulacron-native-server</artifactId>
-       <optional>true</optional>
-     </dependency>
 diff --git a/test-infra/revapi.json b/test-infra/revapi.json
 index 293d9f4d1..70750e36c 100644
 --- a/test-infra/revapi.json
