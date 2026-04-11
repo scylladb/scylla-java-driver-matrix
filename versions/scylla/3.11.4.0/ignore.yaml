@@ -14,3 +14,12 @@ tests:
 
   # scylla-ccm no longer supports --sni-proxy option
   - ScyllaSniProxyTest
+
+  # netty-tcnative bundled in scylla-java-driver 3.11.4.0 requires libssl.so.1.0.0 (OpenSSL 1.0.x)
+  # which is not available on any modern Debian (Bullseye/Bookworm only ship OpenSSL 1.1/3.x).
+  # The [NETTY_OPENSSL] parameterized variants of these tests all fail with UnsatisfiedLinkError.
+  # The [JDK_SSL] variants work fine but cannot be isolated via Maven Surefire without also
+  # excluding [NETTY_OPENSSL], so the entire classes are excluded.
+  - SSLEncryptionTest
+  - SSLAuthenticatedEncryptionTest
+  - Jdk8SSLEncryptionTest
