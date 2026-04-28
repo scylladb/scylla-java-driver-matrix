@@ -353,7 +353,7 @@ index 7fa9c8550a..9ac6b9135e 100644
      session.execute(
 -        "create keyspace ks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
 -    session.execute("create type ks.foo (i int)");
-+        "create keyspace ControlConnectionTest_ks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
++        "create keyspace ControlConnectionTest_ks WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': 1}");
 +    session.execute("create type ControlConnectionTest_ks.foo (i int)");
      cluster.close();
  
@@ -742,3 +742,166 @@ index 777ea439f8..a63e169dac 100644
      assertThat(table.getColumns().get(0)).isNotNull().hasName("k").isPartitionKey().hasType(text());
      assertThat(table.getColumns().get(1))
          .isNotNull()
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/ShardAwarenessTest.java b/driver-core/src/test/java/com/datastax/driver/core/ShardAwarenessTest.java
+index b1867a0562..ac36feb518 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/ShardAwarenessTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/ShardAwarenessTest.java
+@@ -95,7 +95,7 @@ public class ShardAwarenessTest extends CCMTestsSupport {
+     session().execute("DROP KEYSPACE IF EXISTS shardawaretest");
+     session()
+         .execute(
+-            "CREATE KEYSPACE shardawaretest WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}");
++            "CREATE KEYSPACE shardawaretest WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': '3'}");
+     session()
+         .execute("CREATE TABLE shardawaretest.t (pk text, ck text, v text, PRIMARY KEY (pk, ck))");
+ 
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/TestUtils.java b/driver-core/src/test/java/com/datastax/driver/core/TestUtils.java
+index 5dea37b8e2..157e59e4b1 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/TestUtils.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/TestUtils.java
+@@ -86,7 +86,7 @@ public abstract class TestUtils {
+   private static final Logger logger = LoggerFactory.getLogger(TestUtils.class);
+ 
+   public static final String CREATE_KEYSPACE_SIMPLE_FORMAT =
+-      "CREATE KEYSPACE %s WITH replication = { 'class' : 'SimpleStrategy', 'replication_factor' : %d }";
++      "CREATE KEYSPACE %s WITH replication = { 'class' : 'NetworkTopologyStrategy', 'datacenter1' : %d }";
+   public static final String CREATE_KEYSPACE_GENERIC_FORMAT =
+       "CREATE KEYSPACE %s WITH replication = { 'class' : '%s', %s }";
+ 
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/AsyncQueryTest.java b/driver-core/src/test/java/com/datastax/driver/core/AsyncQueryTest.java
+index 098164caa8..bb69af8a3b 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/AsyncQueryTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/AsyncQueryTest.java
+@@ -62,7 +62,7 @@ public class AsyncQueryTest extends CCMTestsSupport {
+       String keyspace = (String) objects[0];
+       execute(
+           String.format(
+-              "create keyspace %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
++              "create keyspace %s WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': 1}",
+               keyspace),
+           String.format("create table %s.foo(k int, v int, primary key (k, v))", keyspace));
+       for (int v = 1; v <= 100; v++)
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/MetadataTest.java b/driver-core/src/test/java/com/datastax/driver/core/MetadataTest.java
+index 26e88c5d87..f3180ab1a3 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/MetadataTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/MetadataTest.java
+@@ -63,7 +63,7 @@ public class MetadataTest extends CCMTestsSupport {
+     session.execute(
+         "CREATE KEYSPACE "
+             + keyspace
+-            + " WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
++            + " WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': 1}");
+     Metadata metadata = cluster.getMetadata();
+ 
+     // Capture all Token data.
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/TokenIntegrationTest.java b/driver-core/src/test/java/com/datastax/driver/core/TokenIntegrationTest.java
+index c2575b0e2c..8a246f7e4b 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/TokenIntegrationTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/TokenIntegrationTest.java
+@@ -77,10 +77,10 @@ public abstract class TokenIntegrationTest extends CCMTestsSupport {
+     ks2 = TestUtils.generateIdentifier("ks_");
+     execute(
+         String.format(
+-            "CREATE KEYSPACE %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
++            "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': 1}",
+             ks1),
+         String.format(
+-            "CREATE KEYSPACE %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 2}",
++            "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': 2}",
+             ks2),
+         String.format("USE %s", ks1),
+         "CREATE TABLE foo(i int primary key)",
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/TupleTest.java b/driver-core/src/test/java/com/datastax/driver/core/TupleTest.java
+index f37d2dcce5..1e44f859bc 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/TupleTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/TupleTest.java
+@@ -100,7 +100,7 @@ public class TupleTest extends CCMTestsSupport {
+     session()
+         .execute(
+             "CREATE KEYSPACE test_tuple_type "
+-                + "WITH replication = { 'class' : 'SimpleStrategy', 'replication_factor': '1'}");
++                + "WITH replication = { 'class' : 'NetworkTopologyStrategy', 'datacenter1': '1'}");
+     session().execute("USE test_tuple_type");
+     session()
+         .execute("CREATE TABLE mytable (a int PRIMARY KEY, b frozen<tuple<ascii, int, boolean>>)");
+@@ -169,7 +169,7 @@ public class TupleTest extends CCMTestsSupport {
+     session()
+         .execute(
+             "CREATE KEYSPACE test_tuple_type_varying_lengths "
+-                + "WITH replication = { 'class' : 'SimpleStrategy', 'replication_factor': '1'}");
++                + "WITH replication = { 'class' : 'NetworkTopologyStrategy', 'datacenter1': '1'}");
+     session().execute("USE test_tuple_type_varying_lengths");
+ 
+     // programmatically create the table with tuples of said sizes
+@@ -226,7 +226,7 @@ public class TupleTest extends CCMTestsSupport {
+     session()
+         .execute(
+             "CREATE KEYSPACE test_tuple_subtypes "
+-                + "WITH replication = { 'class' : 'SimpleStrategy', 'replication_factor': '1'}");
++                + "WITH replication = { 'class' : 'NetworkTopologyStrategy', 'datacenter1': '1'}");
+     session().execute("USE test_tuple_subtypes");
+ 
+     // programmatically create the table with a tuple of all datatypes
+@@ -294,7 +294,7 @@ public class TupleTest extends CCMTestsSupport {
+     session()
+         .execute(
+             "CREATE KEYSPACE test_tuple_non_primitive_subtypes "
+-                + "WITH replication = { 'class' : 'SimpleStrategy', 'replication_factor': '1'}");
++                + "WITH replication = { 'class' : 'NetworkTopologyStrategy', 'datacenter1': '1'}");
+     session().execute("USE test_tuple_non_primitive_subtypes");
+ 
+     ArrayList<String> values = new ArrayList<String>();
+@@ -471,7 +471,7 @@ public class TupleTest extends CCMTestsSupport {
+     session()
+         .execute(
+             "CREATE KEYSPACE test_nested_tuples "
+-                + "WITH replication = { 'class' : 'SimpleStrategy', 'replication_factor': '1'}");
++                + "WITH replication = { 'class' : 'NetworkTopologyStrategy', 'datacenter1': '1'}");
+     session().execute("USE test_nested_tuples");
+ 
+     // create a table with multiple sizes of nested tuples
+@@ -519,7 +519,7 @@ public class TupleTest extends CCMTestsSupport {
+     session()
+         .execute(
+             "CREATE KEYSPACE testTuplesWithNulls "
+-                + "WITH replication = { 'class' : 'SimpleStrategy', 'replication_factor': '1'}");
++                + "WITH replication = { 'class' : 'NetworkTopologyStrategy', 'datacenter1': '1'}");
+     session().execute("USE testTuplesWithNulls");
+ 
+     // create UDT
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/UnresolvedUserTypeTest.java b/driver-core/src/test/java/com/datastax/driver/core/UnresolvedUserTypeTest.java
+index eb9faa0392..2986987915 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/UnresolvedUserTypeTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/UnresolvedUserTypeTest.java
+@@ -34,7 +34,7 @@ public class UnresolvedUserTypeTest extends CCMTestsSupport {
+ 
+   private static final String EXPECTED_SCHEMA =
+       String.format(
+-          "CREATE KEYSPACE %s WITH REPLICATION = { 'class' : 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1' } AND DURABLE_WRITES = true;\n"
++          "CREATE KEYSPACE %s WITH REPLICATION = { 'class' : 'org.apache.cassandra.locator.NetworkTopologyStrategy', 'datacenter1': '1' } AND DURABLE_WRITES = true;\n"
+               + "\n"
+               + "CREATE TYPE %s.g (\n"
+               + "    f1 int\n"
+@@ -89,7 +89,7 @@ public class UnresolvedUserTypeTest extends CCMTestsSupport {
+ 
+          Topological sort order should be : gh,FE,D,CB,A
+          */
+-        "CREATE KEYSPACE unresolved_user_type_test WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'}",
++        "CREATE KEYSPACE unresolved_user_type_test WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': '1'}",
+         String.format("CREATE TYPE %s.h (f1 int)", KEYSPACE),
+         String.format("CREATE TYPE %s.g (f1 int)", KEYSPACE),
+         String.format("CREATE TYPE %s.\"F\" (f1 frozen<h>)", KEYSPACE),
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/UserTypesTest.java b/driver-core/src/test/java/com/datastax/driver/core/UserTypesTest.java
+index 42a352c703..7c48652e7c 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/UserTypesTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/UserTypesTest.java
+@@ -150,7 +150,7 @@ public class UserTypesTest extends CCMTestsSupport {
+             "CREATE KEYSPACE "
+                 + otherKeyspaceName
+                 + " "
+-                + "WITH replication = { 'class' : 'SimpleStrategy', 'replication_factor': '1'}");
++                + "WITH replication = { 'class' : 'NetworkTopologyStrategy', 'datacenter1': '1'}");
+ 
+     KeyspaceMetadata otherKeyspace = cluster().getMetadata().getKeyspace(otherKeyspaceName);
+     assertThat(otherKeyspace.getUserType(quote("\"User Address\""))).isNull();
+

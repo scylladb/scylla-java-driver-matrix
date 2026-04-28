@@ -1,5 +1,5 @@
 diff --git a/core/src/main/java/com/datastax/oss/driver/api/core/config/ClientRoutesConfig.java b/core/src/main/java/com/datastax/oss/driver/api/core/config/ClientRoutesConfig.java
-index d126c3524c..95dd5f7e2b 100644
+index d126c3524c..4aa8a65fb6 100644
 --- a/core/src/main/java/com/datastax/oss/driver/api/core/config/ClientRoutesConfig.java
 +++ b/core/src/main/java/com/datastax/oss/driver/api/core/config/ClientRoutesConfig.java
 @@ -63,6 +63,16 @@ public final class ClientRoutesConfig {
@@ -92,10 +92,10 @@ index d126c3524c..95dd5f7e2b 100644
  
      /**
       * Adds an endpoint to the configuration.
-@@ -208,15 +238,34 @@ public final class ClientRoutesConfig {
+@@ -208,6 +238,25 @@ public final class ClientRoutesConfig {
        return this;
      }
-
+ 
 +    /**
 +     * Sets the native transport port of the cluster nodes. This is used as the fallback port for
 +     * {@code broadcastRpcAddress} when system tables do not include port information. Only needed
@@ -118,8 +118,7 @@ index d126c3524c..95dd5f7e2b 100644
      /**
       * Builds the {@link ClientRoutesConfig} with the configured endpoints and table name.
       *
-      * @return the new configuration instance.
-      * @throws IllegalArgumentException if no endpoints have been added.
+@@ -216,7 +265,7 @@ public final class ClientRoutesConfig {
       */
      @NonNull
      public ClientRoutesConfig build() {
@@ -226,7 +225,7 @@ index 1d6b74cb60..a1f836ab15 100644
        // If reconnectOnFailure was true and we've never connected before, complete the future now to
        // signal that the initialization is complete.
 diff --git a/core/src/main/java/com/datastax/oss/driver/internal/core/metadata/ClientRoutesTopologyMonitor.java b/core/src/main/java/com/datastax/oss/driver/internal/core/metadata/ClientRoutesTopologyMonitor.java
-index 041508b8f2..be47719c7b 100644
+index 041508b8f2..950221627a 100644
 --- a/core/src/main/java/com/datastax/oss/driver/internal/core/metadata/ClientRoutesTopologyMonitor.java
 +++ b/core/src/main/java/com/datastax/oss/driver/internal/core/metadata/ClientRoutesTopologyMonitor.java
 @@ -130,6 +130,7 @@ public class ClientRoutesTopologyMonitor extends DefaultTopologyMonitor {
@@ -237,7 +236,7 @@ index 041508b8f2..be47719c7b 100644
      this.configuredConnectionIds =
          Collections.unmodifiableList(
              config.getEndpoints().stream()
-@@ -438,36 +439,14 @@ public class ClientRoutesTopologyMonitor extends DefaultTopologyMonitor {
+@@ -438,36 +439,15 @@ public class ClientRoutesTopologyMonitor extends DefaultTopologyMonitor {
    }
  
    /**
@@ -248,11 +247,12 @@ index 041508b8f2..be47719c7b 100644
 -   *
 -   * <p>All nodes in a Scylla/Cassandra cluster use the same native transport port, so any route's
 -   * port is correct. We use the minimum host_id for deterministic selection.
-+   * No-op: the port is set in the constructor from {@link ClientRoutesConfig#getNativeTransportPort()}. The default implementation would save the control channel's endpoint port, which is the
-+   * NLB proxy port — not the real native transport port. Using the proxy port would cause {@link
-+   * #getBroadcastRpcAddress} to build incorrect {@code broadcastRpcAddress} values, preventing
-+   * {@code Metadata.findNode()} from matching TOPOLOGY_CHANGE events (which carry the real native
-+   * transport port).
++   * No-op: the port is set in the constructor from {@link
++   * ClientRoutesConfig#getNativeTransportPort()}. The default implementation would save the control
++   * channel's endpoint port, which is the NLB proxy port — not the real native transport port.
++   * Using the proxy port would cause {@link #getBroadcastRpcAddress} to build incorrect {@code
++   * broadcastRpcAddress} values, preventing {@code Metadata.findNode()} from matching
++   * TOPOLOGY_CHANGE events (which carry the real native transport port).
     */
    @Override
 -  protected void savePort(DriverChannel channel) {
@@ -378,6 +378,59 @@ index d70c6d3fac..c9839c3b93 100644
    @Test
    public void should_successfully_send_peers_v2_node_refresh_query()
        throws InterruptedException, ExecutionException {
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/ProtocolVersionMixedClusterIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/ProtocolVersionMixedClusterIT.java
+index 504f01e3ce..015da02ebd 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/ProtocolVersionMixedClusterIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/ProtocolVersionMixedClusterIT.java
+@@ -71,12 +71,15 @@ public class ProtocolVersionMixedClusterIT {
+       assertThat(context.getControlConnection().channel().protocolVersion())
+           .isEqualTo(DefaultProtocolVersion.V4);
+ 
+-      assertThat(queries(simulacron)).hasSize(4);
++      assertThat(queries(simulacron)).hasSize(5);
+ 
+       assertThat(protocolQueries(contactPoint, 4))
+           .containsExactly(
+               // Initial connection with protocol v4
+               "SELECT cluster_name FROM system.local WHERE key='local'",
++              // An extra query done by TopologyMonitor.getChannelEndpoint to resolve control
++              // connection channel endpoint
++              "SELECT * FROM system.local WHERE key='local'",
+               "SELECT * FROM system.local WHERE key='local'",
+               "SELECT * FROM system.peers_v2",
+               "SELECT * FROM system.peers");
+@@ -100,11 +103,14 @@ public class ProtocolVersionMixedClusterIT {
+ 
+       InternalDriverContext context = (InternalDriverContext) session.getContext();
+       assertThat(context.getProtocolVersion()).isEqualTo(DefaultProtocolVersion.V4);
+-      assertThat(queries(simulacron)).hasSize(4);
++      assertThat(queries(simulacron)).hasSize(5);
+       assertThat(protocolQueries(contactPoint, 4))
+           .containsExactly(
+               // Initial connection with protocol v4
+               "SELECT cluster_name FROM system.local WHERE key='local'",
++              // An extra query done by TopologyMonitor.getChannelEndpoint to resolve control
++              // connection channel endpoint
++              "SELECT * FROM system.local WHERE key='local'",
+               "SELECT * FROM system.local WHERE key='local'",
+               "SELECT * FROM system.peers_v2",
+               "SELECT * FROM system.peers");
+@@ -151,11 +157,14 @@ public class ProtocolVersionMixedClusterIT {
+                     .build()) {
+       assertThat(session.getContext().getProtocolVersion()).isEqualTo(DefaultProtocolVersion.V4);
+ 
+-      assertThat(queries(simulacron)).hasSize(4);
++      assertThat(queries(simulacron)).hasSize(5);
+       assertThat(protocolQueries(contactPoint, 4))
+           .containsExactly(
+               // Initial connection with protocol v4
+               "SELECT cluster_name FROM system.local WHERE key='local'",
++              // An extra query done by TopologyMonitor.getChannelEndpoint to resolve control
++              // connection channel endpoint
++              "SELECT * FROM system.local WHERE key='local'",
+               "SELECT * FROM system.local WHERE key='local'",
+               "SELECT * FROM system.peers_v2",
+               "SELECT * FROM system.peers");
 diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/clientroutes/ClientRoutesIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/clientroutes/ClientRoutesIT.java
 index 9a23f36854..872f1221d7 100644
 --- a/integration-tests/src/test/java/com/datastax/oss/driver/core/clientroutes/ClientRoutesIT.java
@@ -406,10 +459,10 @@ index 9a23f36854..872f1221d7 100644
          nlb.addNode(1);
  
 diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/clientroutes/NlbSimulator.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/clientroutes/NlbSimulator.java
-index 6d68a9336a..0097b6a2af 100644
+index 6d68a9336a..15f6061221 100644
 --- a/integration-tests/src/test/java/com/datastax/oss/driver/core/clientroutes/NlbSimulator.java
 +++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/clientroutes/NlbSimulator.java
-@@ -112,20 +112,23 @@ public class NlbSimulator implements Closeable {
+@@ -112,19 +112,25 @@ public class NlbSimulator implements Closeable {
      String nodeIp = ccmBridge.getNodeIpAddress(nodeId);
      InetSocketAddress nodeAddr = new InetSocketAddress(nodeIp, 9042);
  
@@ -420,29 +473,26 @@ index 6d68a9336a..0097b6a2af 100644
 -    // Update state and rebuild discovery proxy; if rebuild fails, close the new proxy
      activeNodes.add(nodeId);
      nodeProxies.put(nodeId, proxy);
--    try {
--      rebuildDiscoveryProxy();
--    } catch (IOException e) {
--      activeNodes.remove(Integer.valueOf(nodeId));
--      nodeProxies.remove(nodeId);
--      proxy.close();
--      throw e;
 +
-+    try {
+     try {
+-      rebuildDiscoveryProxy();
 +      if (discoveryProxy == null) {
 +        discoveryProxy = buildDiscoveryProxy(nodeAddr);
 +      } else {
 +        discoveryProxy.addTarget(nodeAddr);
 +      }
-+    } catch (IOException e) {
-+      activeNodes.remove(Integer.valueOf(nodeId));
-+      nodeProxies.remove(nodeId);
-+      try { proxy.close(); } catch (Exception ignored) {}
-+      throw e;
+     } catch (IOException e) {
+       activeNodes.remove(Integer.valueOf(nodeId));
+       nodeProxies.remove(nodeId);
+-      proxy.close();
++      try {
++        proxy.close();
++      } catch (Exception ignored) {
++      }
+       throw e;
      }
  
-     LOG.info("NLB: added node{} ({}:{}) -> proxy port {}", nodeId, nodeIp, 9042, nodePort);
-@@ -139,37 +135,25 @@ public class NlbSimulator implements Closeable {
+@@ -139,37 +145,25 @@ public class NlbSimulator implements Closeable {
      }
      activeNodes.remove(Integer.valueOf(nodeId));
  
@@ -535,8 +585,111 @@ index 964abf05bf..0252ab6678 100644
    private void acceptLoop() {
      while (!closed.get()) {
        try {
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/SimpleStatementCcmIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/SimpleStatementCcmIT.java
+index 1d02c42b52..8c1f8212b0 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/SimpleStatementCcmIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/cql/SimpleStatementCcmIT.java
+@@ -375,7 +375,7 @@ public class SimpleStatementCcmIT {
+     SESSION_RULE
+         .session()
+         .execute(
+-            "CREATE KEYSPACE IF NOT EXISTS ks WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}");
++            "CREATE KEYSPACE IF NOT EXISTS ks WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 1}");
+ 
+     SESSION_RULE
+         .session()
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/loadbalancing/LWTLoadBalancingIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/loadbalancing/LWTLoadBalancingIT.java
+index 0586b3236b..6aa8dfb81e 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/loadbalancing/LWTLoadBalancingIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/loadbalancing/LWTLoadBalancingIT.java
+@@ -72,7 +72,7 @@ public class LWTLoadBalancingIT {
+     session.execute(
+         "CREATE KEYSPACE "
+             + keyspace.asCql(false)
+-            + " WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}");
++            + " WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3}");
+     session.execute("USE " + keyspace.asCql(false));
+     session.execute("CREATE TABLE foo (pk int, ck int, v int, PRIMARY KEY (pk, ck))");
+   }
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaChangesIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaChangesIT.java
+index a03320f261..79cc53e569 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaChangesIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/SchemaChangesIT.java
+@@ -99,16 +99,15 @@ public class SchemaChangesIT {
+         null,
+         String.format(
+             "CREATE KEYSPACE %s "
+-                + "WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
++                + "WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1}",
+             newKeyspaceId),
+         metadata -> metadata.getKeyspace(newKeyspaceId),
+         keyspace -> {
+           assertThat(keyspace.getName()).isEqualTo(newKeyspaceId);
+           assertThat(keyspace.isDurableWrites()).isTrue();
+           assertThat(keyspace.getReplication())
+-              .hasSize(2)
+-              .containsEntry("class", "org.apache.cassandra.locator.SimpleStrategy")
+-              .containsEntry("replication_factor", "1");
++              .containsEntry("class", "org.apache.cassandra.locator.NetworkTopologyStrategy")
++              .containsEntry("dc1", "1");
+         },
+         (listener, keyspace) -> verify(listener).onKeyspaceCreated(keyspace),
+         newKeyspaceId);
+@@ -121,7 +120,7 @@ public class SchemaChangesIT {
+         ImmutableList.of(
+             String.format(
+                 "CREATE KEYSPACE %s "
+-                    + "WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
++                    + "WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1}",
+                 newKeyspaceId.asCql(true))),
+         String.format("DROP KEYSPACE %s", newKeyspaceId.asCql(true)),
+         metadata -> metadata.getKeyspace(newKeyspaceId),
+@@ -136,11 +135,11 @@ public class SchemaChangesIT {
+         ImmutableList.of(
+             String.format(
+                 "CREATE KEYSPACE %s "
+-                    + "WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
++                    + "WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1}",
+                 newKeyspaceId.asCql(true))),
+         String.format(
+             "ALTER KEYSPACE %s "
+-                + "WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1} "
++                + "WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1} "
+                 + "AND durable_writes = 'false'",
+             newKeyspaceId.asCql(true)),
+         metadata -> metadata.getKeyspace(newKeyspaceId),
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/TokenITBase.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/TokenITBase.java
+index c97a2279ef..21f678fc26 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/TokenITBase.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/metadata/TokenITBase.java
+@@ -56,10 +56,10 @@ public abstract class TokenITBase {
+     for (String statement :
+         ImmutableList.of(
+             String.format(
+-                "CREATE KEYSPACE %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
++                "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1}",
+                 KS1.asCql(false)),
+             String.format(
+-                "CREATE KEYSPACE %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 2}",
++                "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2}",
+                 KS2.asCql(false)),
+ 
+             // Shouldn't really do that, but it makes the rest of the tests a bit prettier.
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/pool/AdvancedShardAwarenessIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/pool/AdvancedShardAwarenessIT.java
+index aeda4a02c7..782aa2dfdb 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/core/pool/AdvancedShardAwarenessIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/pool/AdvancedShardAwarenessIT.java
+@@ -234,7 +234,7 @@ public class AdvancedShardAwarenessIT {
+         CqlSession session4 = CompletableFutures.getUninterruptibly(stage4); ) {
+       List<CqlSession> allSessions = Arrays.asList(session1, session2, session3, session4);
+       Awaitility.await()
+-          .atMost(20, TimeUnit.SECONDS)
++          .atMost(60, TimeUnit.SECONDS)
+           .pollInterval(500, TimeUnit.MILLISECONDS)
+           .until(() -> areAllPoolsFullyInitialized(allSessions, expectedChannelsPerNode));
+       int tolerance = 2; // Sometimes socket ends up already in use
 diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
-index 0498462ce1..c26b82334a 100644
+index 0498462ce1..d99e0d3f68 100644
 --- a/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
 +++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/resolver/MockResolverIT.java
 @@ -274,8 +274,10 @@ public class MockResolverIT {
@@ -552,6 +705,45 @@ index 0498462ce1..c26b82334a 100644
          break;
        }
        LOG.warn(
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/mapper/DefaultKeyspaceIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/mapper/DefaultKeyspaceIT.java
+index 30a808e87a..376834519a 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/mapper/DefaultKeyspaceIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/mapper/DefaultKeyspaceIT.java
+@@ -75,7 +75,7 @@ public class DefaultKeyspaceIT {
+     session.execute(
+         SimpleStatement.builder(
+                 String.format(
+-                    "CREATE KEYSPACE IF NOT EXISTS %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
++                    "CREATE KEYSPACE IF NOT EXISTS %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1}",
+                     DEFAULT_KEYSPACE))
+             .setExecutionProfile(SESSION_RULE.slowProfile())
+             .build());
+diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/mapper/QueryKeyspaceAndTableIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/mapper/QueryKeyspaceAndTableIT.java
+index 9391c0363f..06810507ed 100644
+--- a/integration-tests/src/test/java/com/datastax/oss/driver/mapper/QueryKeyspaceAndTableIT.java
++++ b/integration-tests/src/test/java/com/datastax/oss/driver/mapper/QueryKeyspaceAndTableIT.java
+@@ -67,7 +67,7 @@ public class QueryKeyspaceAndTableIT {
+         ImmutableList.of(
+             "CREATE TABLE foo(k int PRIMARY KEY)",
+             String.format(
+-                "CREATE KEYSPACE IF NOT EXISTS %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
++                "CREATE KEYSPACE IF NOT EXISTS %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1}",
+                 OTHER_KEYSPACE.asCql(false)),
+             String.format("CREATE TABLE %s.foo(k int PRIMARY KEY)", OTHER_KEYSPACE.asCql(false)))) {
+       session.execute(
+diff --git a/osgi-tests/src/main/java/com/datastax/oss/driver/internal/osgi/service/MailboxServiceImpl.java b/osgi-tests/src/main/java/com/datastax/oss/driver/internal/osgi/service/MailboxServiceImpl.java
+index 1da97d7d61..d7bb70ebf2 100644
+--- a/osgi-tests/src/main/java/com/datastax/oss/driver/internal/osgi/service/MailboxServiceImpl.java
++++ b/osgi-tests/src/main/java/com/datastax/oss/driver/internal/osgi/service/MailboxServiceImpl.java
+@@ -69,7 +69,7 @@ public class MailboxServiceImpl implements MailboxService {
+   protected void createSchema() {
+     session.execute("DROP KEYSPACE IF EXISTS test_osgi");
+     session.execute(
+-        "CREATE KEYSPACE IF NOT EXISTS test_osgi with replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}");
++        "CREATE KEYSPACE IF NOT EXISTS test_osgi with replication = {'class': 'NetworkTopologyStrategy', 'dc1' : 1}");
+     session.execute(
+         "CREATE TABLE "
+             + keyspace
 diff --git a/pom.xml b/pom.xml
 index 96fb2401c4..2e491fbafa 100644
 --- a/pom.xml
@@ -760,7 +952,7 @@ index e7b2b4e4a0..8fbbed8d95 100644
    }
  
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
-index 5ea1bf7ed3..d2491ab8df 100644
+index 5ea1bf7ed3..3f7f5be283 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
 +++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/CustomCcmRule.java
 @@ -17,6 +17,7 @@
@@ -802,70 +994,16 @@ index 5ea1bf7ed3..d2491ab8df 100644
      public CustomCcmRule build() {
        return new CustomCcmRule(bridgeBuilder.build());
      }
-diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/ProtocolVersionMixedClusterIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/ProtocolVersionMixedClusterIT.java
-index 504f01e3ce..015da02ebd 100644
---- a/integration-tests/src/test/java/com/datastax/oss/driver/core/ProtocolVersionMixedClusterIT.java
-+++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/ProtocolVersionMixedClusterIT.java
-@@ -71,12 +71,15 @@ public class ProtocolVersionMixedClusterIT {
-       assertThat(context.getControlConnection().channel().protocolVersion())
-           .isEqualTo(DefaultProtocolVersion.V4);
- 
--      assertThat(queries(simulacron)).hasSize(4);
-+      assertThat(queries(simulacron)).hasSize(5);
- 
-       assertThat(protocolQueries(contactPoint, 4))
-           .containsExactly(
-               // Initial connection with protocol v4
-               "SELECT cluster_name FROM system.local WHERE key='local'",
-+              // An extra query done by TopologyMonitor.getChannelEndpoint to resolve control
-+              // connection channel endpoint
-+              "SELECT * FROM system.local WHERE key='local'",
-               "SELECT * FROM system.local WHERE key='local'",
-               "SELECT * FROM system.peers_v2",
-               "SELECT * FROM system.peers");
-@@ -100,11 +103,14 @@ public class ProtocolVersionMixedClusterIT {
- 
-       InternalDriverContext context = (InternalDriverContext) session.getContext();
-       assertThat(context.getProtocolVersion()).isEqualTo(DefaultProtocolVersion.V4);
--      assertThat(queries(simulacron)).hasSize(4);
-+      assertThat(queries(simulacron)).hasSize(5);
-       assertThat(protocolQueries(contactPoint, 4))
-           .containsExactly(
-               // Initial connection with protocol v4
-               "SELECT cluster_name FROM system.local WHERE key='local'",
-+              // An extra query done by TopologyMonitor.getChannelEndpoint to resolve control
-+              // connection channel endpoint
-+              "SELECT * FROM system.local WHERE key='local'",
-               "SELECT * FROM system.local WHERE key='local'",
-               "SELECT * FROM system.peers_v2",
-               "SELECT * FROM system.peers");
-@@ -151,11 +157,14 @@ public class ProtocolVersionMixedClusterIT {
-                     .build()) {
-       assertThat(session.getContext().getProtocolVersion()).isEqualTo(DefaultProtocolVersion.V4);
- 
--      assertThat(queries(simulacron)).hasSize(4);
-+      assertThat(queries(simulacron)).hasSize(5);
-       assertThat(protocolQueries(contactPoint, 4))
-           .containsExactly(
-               // Initial connection with protocol v4
-               "SELECT cluster_name FROM system.local WHERE key='local'",
-+              // An extra query done by TopologyMonitor.getChannelEndpoint to resolve control
-+              // connection channel endpoint
-+              "SELECT * FROM system.local WHERE key='local'",
-               "SELECT * FROM system.local WHERE key='local'",
-               "SELECT * FROM system.peers_v2",
-               "SELECT * FROM system.peers");
-
-diff --git a/integration-tests/src/test/java/com/datastax/oss/driver/core/pool/AdvancedShardAwarenessIT.java b/integration-tests/src/test/java/com/datastax/oss/driver/core/pool/AdvancedShardAwarenessIT.java
-index aeda4a02c7..782aa2dfdb 100644
---- a/integration-tests/src/test/java/com/datastax/oss/driver/core/pool/AdvancedShardAwarenessIT.java
-+++ b/integration-tests/src/test/java/com/datastax/oss/driver/core/pool/AdvancedShardAwarenessIT.java
-@@ -234,7 +234,7 @@ public class AdvancedShardAwarenessIT {
-         CqlSession session4 = CompletableFutures.getUninterruptibly(stage4); ) {
-       List<CqlSession> allSessions = Arrays.asList(session1, session2, session3, session4);
-       Awaitility.await()
--          .atMost(20, TimeUnit.SECONDS)
-+          .atMost(60, TimeUnit.SECONDS)
-           .pollInterval(500, TimeUnit.MILLISECONDS)
-           .until(() -> areAllPoolsFullyInitialized(allSessions, expectedChannelsPerNode));
-       int tolerance = 2; // Sometimes socket ends up already in use
+diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/session/SessionUtils.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/session/SessionUtils.java
+index 7536c0ffdc..6e13cc5cf5 100644
+--- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/session/SessionUtils.java
++++ b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/session/SessionUtils.java
+@@ -198,7 +198,7 @@ public class SessionUtils {
+     SimpleStatement createKeyspace =
+         SimpleStatement.builder(
+                 String.format(
+-                    "CREATE KEYSPACE %s WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };",
++                    "CREATE KEYSPACE %s WITH REPLICATION = { 'class' : 'NetworkTopologyStrategy', 'dc1' : 1 };",
+                     keyspace.asCql(false)))
+             .setExecutionProfile(profile)
+             .build();
