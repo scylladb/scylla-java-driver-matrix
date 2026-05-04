@@ -1,0 +1,83 @@
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
+index 344678c814..74a126cb20 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
+@@ -207,11 +207,11 @@ public class CCMBridge implements CCMAccess {
+       installArgs.add("-v git:" + branch.trim().replaceAll("\"", ""));
+     } else if (inputScyllaVersion != null && !inputScyllaVersion.trim().isEmpty()) {
+       installArgs.add(" --scylla ");
+-      if (isVersionNumber(inputScyllaVersion)) {
+-        installArgs.add("-v release:" + inputScyllaVersion);
+-      } else {
+-        installArgs.add("-v " + inputScyllaVersion);
+-      }
++      // Dropping release prefix to force CCM to use version downloaded locally by Jenkins since
++      // resolving proper CCM version argument value based on the Jenkins's scylla-version was
++      // proven difficult.
++      installArgs.add("-v " + inputScyllaVersion);
++
+       // Detect Scylla Enterprise - it should start with
+       // a 4-digit year.
+       if (inputScyllaVersion.matches("\\d{4}\\..*")) {
+@@ -480,10 +480,14 @@ public class CCMBridge implements CCMAccess {
+ 
+   @Override
+   public InetSocketAddress jmxAddressOfNode(int n) {
++    // For dynamically added nodes (via add()), jmxPorts[] may not have an entry since it is
++    // sized only for nodes declared at cluster-creation time. Fall back to the same deterministic
++    // formula used in add().
++    int port = (n - 1 < jmxPorts.length) ? jmxPorts[n - 1] : (7000 + n * 100);
+     if (GLOBAL_SCYLLA_VERSION_NUMBER != null) {
+-      return new InetSocketAddress(ipOfNode(n), jmxPorts[n - 1]);
++      return new InetSocketAddress(ipOfNode(n), port);
+     } else {
+-      return new InetSocketAddress("localhost", jmxPorts[n - 1]);
++      return new InetSocketAddress("localhost", port);
+     }
+   }
+ 
+@@ -733,23 +737,25 @@ public class CCMBridge implements CCMAccess {
+   public void add(int dc, int n) {
+     logger.debug(
+         String.format("Adding: node %s (%s%s:%s) to %s", n, ipPrefix, n, binaryPort, this));
+-    String thriftItf = ipOfNode(n) + ":" + thriftPort;
+     String storageItf = ipOfNode(n) + ":" + storagePort;
+     String binaryItf = ipOfNode(n) + ":" + binaryPort;
+     String remoteLogItf = ipOfNode(n) + ":" + TestUtils.findAvailablePort();
++    // Use a deterministic JMX port formula to avoid TOCTOU races from findAvailablePort()
++    // and to match the fallback in jmxAddressOfNode() for dynamically added nodes (jmxPorts[]
++    // is sized only for nodes declared at cluster-creation time).
++    int jmxPort = 7000 + n * 100;
+     execute(
+         CCM_COMMAND
+-            + " add node%d -d dc%s -i %s%d -t %s -l %s --binary-itf %s -j %d -r %s -s -b"
++            + " add node%d -d dc%s -i %s%d -l %s --binary-itf %s -j %d -r %s -s -b"
+             + (isDSE ? " --dse" : "")
+             + (isScylla ? " --scylla" : ""),
+         n,
+         dc,
+         ipPrefix,
+         n,
+-        thriftItf,
+         storageItf,
+         binaryItf,
+-        TestUtils.findAvailablePort(),
++        jmxPort,
+         remoteLogItf);
+   }
+ 
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
+index ea75f84544..ea70e9081a 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
+@@ -38,7 +38,9 @@ import org.slf4j.LoggerFactory;
+ import org.testng.annotations.AfterMethod;
+ import org.testng.annotations.Test;
+ 
+-@CCMConfig(dirtiesContext = true)
++@CCMConfig(
++    dirtiesContext = true,
++    jvmArgs = {"--smp", "1", "--max-networking-io-control-blocks", "15000"})
+ public class SessionStressTest extends CCMTestsSupport {
+ 
+   private static final Logger logger = LoggerFactory.getLogger(SessionStressTest.class);
