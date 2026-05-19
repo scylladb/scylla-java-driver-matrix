@@ -66,6 +66,22 @@ index 344678c814..74a126cb20 100644
          remoteLogItf);
    }
  
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMTestsSupport.java b/driver-core/src/test/java/com/datastax/driver/core/CCMTestsSupport.java
+index c8627f1d0b..dc432998f6 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/CCMTestsSupport.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/CCMTestsSupport.java
+@@ -1023,7 +1023,10 @@ public class CCMTestsSupport {
+       try {
+         keyspace = TestUtils.generateIdentifier("ks_");
+         LOGGER.debug("Using keyspace " + keyspace);
+-        session.execute(String.format(CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1));
++        boolean isScylla = CCMBridge.getGlobalScyllaVersion() != null;
++        session.execute(
++            String.format(CREATE_KEYSPACE_SIMPLE_FORMAT, keyspace, 1)
++                + (isScylla ? " AND tablets = {'enabled': false}" : ""));
+         useKeyspace(keyspace);
+       } catch (Exception e) {
+         errorOut();
 diff --git a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java b/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
 index ea75f84544..ea70e9081a 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/SessionStressTest.java
@@ -81,3 +97,4 @@ index ea75f84544..ea70e9081a 100644
  public class SessionStressTest extends CCMTestsSupport {
  
    private static final Logger logger = LoggerFactory.getLogger(SessionStressTest.class);
+
