@@ -573,7 +573,7 @@ index 7536c0ffdc..6e13cc5cf5 100644
          SimpleStatement.builder(
                  String.format(
 -                    "CREATE KEYSPACE %s WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };",
-+                    "CREATE KEYSPACE %s WITH REPLICATION = { 'class' : 'NetworkTopologyStrategy', 'dc1' : 1 };",
++                    "CREATE KEYSPACE %s WITH REPLICATION = { 'class' : 'NetworkTopologyStrategy', 'dc1' : 1 } AND tablets = {'enabled': false};",
                      keyspace.asCql(false)))
              .setExecutionProfile(profile)
              .build();
@@ -794,3 +794,4 @@ index c6e9091220..18dbc060ba 100644
      assertThat(stream.get()).hasSize(10);
    }
  
+
