@@ -19,7 +19,8 @@ DEV_MODE = bool(strtobool(os.environ.get("DEV_MODE", "False")))
 
 
 class Run:
-    def __init__(self, java_driver_git, scylla_install_dir, tag, tests, driver_type, scylla_version=None):
+    def __init__(self, java_driver_git, scylla_install_dir, tag, tests, driver_type, scylla_version=None, patch_only=False):
+        self._patch_only = patch_only
         self._tag = tag
         self._java_driver_git = Path(java_driver_git)
         self._scylla_version = scylla_version
@@ -138,6 +139,10 @@ class Run:
         self._run_command_in_shell("git checkout .")
         self._run_command_in_shell(f"git checkout {self._tag}")
         self._apply_patch_files()
+
+        if self._patch_only:
+            logging.info("Patch-only mode: patches applied successfully for '%s'", self._tag)
+            return None
 
         tests_string = self._tests
         if exclude_str := ','.join(f"!{ignore_element}" for ignore_element in self.ignore_tests):

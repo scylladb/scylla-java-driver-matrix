@@ -13,7 +13,7 @@ from email_sender import send_mail, create_report, get_driver_origin_remote
 logging.basicConfig(level=logging.INFO)
 
 
-def main(java_driver_git, scylla_install_dir, tests, versions, driver_type, scylla_version, recipients):
+def main(java_driver_git, scylla_install_dir, tests, versions, driver_type, scylla_version, recipients, patch_only=False):
     status = 0
     results = {}
     logging.info("=== Going to test those versions: %s", versions)
@@ -26,9 +26,14 @@ def main(java_driver_git, scylla_install_dir, tests, versions, driver_type, scyl
                 tag=version,
                 tests=tests,
                 driver_type=driver_type,
-                scylla_version=scylla_version)
+                scylla_version=scylla_version,
+                patch_only=patch_only)
         try:
             report = runner.run()
+            if report is None:
+                # patch-only mode — no test report to process
+                results[version] = {'patch_only': True, 'status': 'OK'}
+                continue
             logging.info("=== JAVA DRIVER MATRIX RESULTS FOR %s ===", version)
             logging.info(", ".join(f"{key}: {value}" for key, value in report.summary.items()))
             if report.is_failed:
@@ -45,7 +50,7 @@ def main(java_driver_git, scylla_install_dir, tests, versions, driver_type, scyl
             results[version] = dict(exception=failure_reason)
             runner.create_metadata_for_failure(reason="\n".join(failure_reason))
 
-    if recipients:
+    if recipients and not patch_only:
         email_report = create_report(results=results)
         email_report['driver_remote'] = get_driver_origin_remote(java_driver_git)
         email_report['status'] = "SUCCESS" if status == 0 else "FAILED"
@@ -95,6 +100,8 @@ if __name__ == '__main__':
     parser.add_argument('--recipients', help="whom to send mail at the end of the run",  nargs='+', default=None)
     parser.add_argument('--driver-type', help='Type of java-driver ("scylla", "cassandra" or "datastax")',
                         dest='driver_type', default='datastax')
+    parser.add_argument('--patch-only', action='store_true', default=False,
+                        help='Only check out and apply patches, skip build and tests. Used for release validation.')
     parser.add_argument('--version-size', help='The number of the latest versions that will test.'
                                                'The version is filtered by the major and minor values.'
                                                'For example, the user selects the 2 latest versions for version 4.'
@@ -120,5 +127,6 @@ if __name__ == '__main__':
          tests=arguments.tests, versions=versions,
          scylla_version=arguments.scylla_version,
          driver_type=arguments.driver_type,
-         recipients=arguments.recipients)
+         recipients=arguments.recipients,
+         patch_only=arguments.patch_only)
 
