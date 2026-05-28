@@ -13,9 +13,41 @@ from email_sender import send_mail, create_report, get_driver_origin_remote
 logging.basicConfig(level=logging.INFO)
 
 
-def main(java_driver_git, scylla_install_dir, tests, versions, driver_type, scylla_version, recipients, patch_only=False):
+def resolve_driver_version(repo_directory: str, checkout_ref: str) -> str:
+    try:
+        version = subprocess.check_output(
+            [
+                "git",
+                "-C",
+                repo_directory,
+                "describe",
+                "--tags",
+                "--abbrev=0",
+                "--match",
+                "[0-9]*",
+                checkout_ref,
+            ],
+            text=True,
+        ).strip()
+    except subprocess.CalledProcessError as exc:
+        raise ValueError(
+            f"Unable to resolve a driver version tag for ref '{checkout_ref}' in '{repo_directory}'"
+        ) from exc
+
+    if not version:
+        raise ValueError(f"Unable to resolve a driver version tag for ref '{checkout_ref}' in '{repo_directory}'")
+
+    return version
+
+
+def main(java_driver_git, scylla_install_dir, tests, versions, driver_type, scylla_version, recipients, patch_only=False, checkout_ref=None):
     status = 0
     results = {}
+
+    if checkout_ref:
+        versions = [resolve_driver_version(java_driver_git, checkout_ref)]
+        logging.info("Resolved driver ref '%s' to version '%s'", checkout_ref, versions[0])
+
     logging.info("=== Going to test those versions: %s", versions)
 
     for version in versions:
@@ -27,7 +59,8 @@ def main(java_driver_git, scylla_install_dir, tests, versions, driver_type, scyl
                 tests=tests,
                 driver_type=driver_type,
                 scylla_version=scylla_version,
-                patch_only=patch_only)
+                patch_only=patch_only,
+                checkout_ref=checkout_ref)
         try:
             report = runner.run()
             if report is None:
@@ -97,6 +130,7 @@ if __name__ == '__main__':
     parser.add_argument('--tests', default='',
                         help='Initial tests list to pass along. Runner will modify it according to ignore.yaml from version patch. default=\'\'')
     parser.add_argument('--scylla-version', help="relocatable scylla version to use", default=os.environ.get('SCYLLA_VERSION', None))
+    parser.add_argument('--checkout-ref', help="git ref to checkout before testing. When set, the driver version is resolved from this ref and the value in --versions is ignored.", default=None)
     parser.add_argument('--recipients', help="whom to send mail at the end of the run",  nargs='+', default=None)
     parser.add_argument('--driver-type', help='Type of java-driver ("scylla", "cassandra" or "datastax")',
                         dest='driver_type', default='datastax')
@@ -128,5 +162,5 @@ if __name__ == '__main__':
          scylla_version=arguments.scylla_version,
          driver_type=arguments.driver_type,
          recipients=arguments.recipients,
-         patch_only=arguments.patch_only)
-
+         patch_only=arguments.patch_only,
+         checkout_ref=arguments.checkout_ref)

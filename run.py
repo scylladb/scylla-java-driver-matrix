@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import shutil
+import shlex
 import subprocess
 import sys
 from distutils.util import strtobool
@@ -19,9 +20,10 @@ DEV_MODE = bool(strtobool(os.environ.get("DEV_MODE", "False")))
 
 
 class Run:
-    def __init__(self, java_driver_git, scylla_install_dir, tag, tests, driver_type, scylla_version=None, patch_only=False):
+    def __init__(self, java_driver_git, scylla_install_dir, tag, tests, driver_type, scylla_version=None, patch_only=False, checkout_ref=None):
         self._patch_only = patch_only
         self._tag = tag
+        self._checkout_ref = checkout_ref or tag
         self._java_driver_git = Path(java_driver_git)
         self._scylla_version = scylla_version
         self._scylla_install_dir = scylla_install_dir
@@ -137,7 +139,8 @@ class Run:
 
     def run(self) -> ProcessJUnit:
         self._run_command_in_shell("git checkout .")
-        self._run_command_in_shell(f"git checkout {self._tag}")
+        logging.info("Checking out driver ref '%s' for version '%s'", self._checkout_ref, self._tag)
+        self._run_command_in_shell(f"git checkout {shlex.quote(self._checkout_ref)}")
         self._apply_patch_files()
 
         if self._patch_only:
@@ -156,7 +159,6 @@ class Run:
         self._run_command_in_shell(f"mvn {no_tty} clean")
         logging.info("Starting build the version")
         self._run_command_in_shell(f"mvn {no_tty} install -DskipTests=true -Dmaven.javadoc.skip=true -V")
-
 
         cmd = f"mvn {no_tty} -pl integration-tests integration-test"
 

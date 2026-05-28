@@ -1,0 +1,134 @@
+name: PR Integration Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Detect PR changes
+    runs-on: ubuntu-latest
+    outputs:
+      runner_changed: ${{ steps.detect.outputs.runner_changed }}
+      scripts_image_source_changed: ${{ steps.detect.outputs.scripts_image_source_changed }}
+      scripts_image_changed: ${{ steps.detect.outputs.scripts_image_changed }}
+      version_count: ${{ steps.detect.outputs.version_count }}
+      version_matrix: ${{ steps.detect.outputs.version_matrix }}
+    steps:
+      - name: Checkout matrix
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Detect changed paths
+        id: detect
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+
+          sys.path.insert(0, os.environ["GITHUB_WORKSPACE"])
+          from scripts.pr_integration_changes import detect_changes
+
+          api_url = os.environ["GITHUB_API_URL"].rstrip("/")
+          repo = os.environ["GITHUB_REPOSITORY"]
+          pr_number = os.environ["PR_NUMBER"]
+          token = os.environ["GH_TOKEN"]
+
+          changed_files = []
+          page = 1
+          while True:
+              request = Request(
+                  f"{api_url}/repos/{repo}/pulls/{pr_number}/files?per_page=100&page={page}",
+                  headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {token}",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                  },
+              )
+              with urlopen(request) as response:
+                  batch = json.load(response)
+              if not batch:
+                  break
+              changed_files.extend(item["filename"] for item in batch)
+              if len(batch) < 100:
+                  break
+              page += 1
+
+          outputs = detect_changes(changed_files, repo_root=Path("."))
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              for name, value in outputs.items():
+                  output.write(f"{name}={value}\n")
+          PY
+
+  require-scripts-image:
+    name: Require scripts/image update
+    needs: changes
+    if: ${{ needs.changes.outputs.scripts_image_source_changed == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check scripts/image changed
+        env:
+          SCRIPTS_IMAGE_CHANGED: ${{ needs.changes.outputs.scripts_image_changed }}
+        run: |
+          set -euo pipefail
+          if [ "$SCRIPTS_IMAGE_CHANGED" != "true" ]; then
+            echo "::error::Changes to Docker image inputs require scripts/image to be updated in the same PR."
+            exit 1
+          fi
+          echo "scripts/image was updated."
+
+  current-workflow:
+    name: ${{ matrix.driver_type }} / Scylla ${{ matrix.scylla_version }}
+    needs: changes
+    if: ${{ needs.changes.outputs.runner_changed == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - driver_type: datastax
+            driver_repository: datastax/java-driver
+            scylla_version: LATEST
+          - driver_type: scylla
+            driver_repository: scylladb/java-driver
+            scylla_version: LATEST
+          - driver_type: scylla
+            driver_repository: scylladb/java-driver
+            scylla_version: PRIOR
+          - driver_type: scylla
+            driver_repository: scylladb/java-driver
+            scylla_version: LTS-LATEST
+          - driver_type: scylla
+            driver_repository: scylladb/java-driver
+            scylla_version: LTS-PRIOR
+    uses: ./.github/workflows/integration-tests.yml
+    with:
+      driver_repository: ${{ matrix.driver_repository }}
+      driver_type: ${{ matrix.driver_type }}
+      scylla_version: ${{ matrix.scylla_version }}
+
+  changed-driver-version-tests:
+    name: ${{ matrix.driver_type }} ${{ matrix.driver_version }} / Scylla LATEST
+    needs: changes
+    if: ${{ needs.changes.outputs.version_count != '0' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.changes.outputs.version_matrix) }}
+    uses: ./.github/workflows/integration-tests.yml
+    with:
+      driver_repository: ${{ matrix.driver_repository }}
+      driver_type: ${{ matrix.driver_type }}
+      driver_ref: ${{ matrix.driver_ref }}
+      scylla_version: LATEST

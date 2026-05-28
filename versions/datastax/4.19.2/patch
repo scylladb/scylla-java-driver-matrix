@@ -916,20 +916,29 @@ index f0ce6bc5b..e76d46b11 100644
      this.cassandraConfiguration = cassandraConfiguration;
      this.dseConfiguration = dseConfiguration;
      this.rawDseYaml = dseConfigurationRawYaml;
-@@ -196,6 +199,7 @@ public class CcmBridge implements AutoCloseable {
+@@ -196,6 +199,16 @@ public class CcmBridge implements AutoCloseable {
      return DistributionCassandraVersions.getCassandraVersion(DISTRIBUTION, VERSION);
    }
  
-+  @SuppressWarnings("unused")
++  private String getScyllaCcmVersionString() {
++    if (SCYLLA_VERSION == null || SCYLLA_VERSION.isEmpty()) {
++      return "release:" + getCcmVersionString(VERSION);
++    }
++    if (SCYLLA_VERSION.contains(":")) {
++      return SCYLLA_VERSION;
++    }
++    return "release:" + SCYLLA_VERSION;
++  }
++
    private String getCcmVersionString(Version version) {
      // for 4.0 or 5.0 pre-releases, the CCM version string needs to be "4.0-alpha1", "4.0-alpha2" or
      // "5.0-beta1" Version.toString() always adds a patch value, even if it's not specified when
-@@ -223,14 +227,15 @@ public class CcmBridge implements AutoCloseable {
+@@ -223,14 +236,15 @@ public class CcmBridge implements AutoCloseable {
          createOptions.add("-v git:" + BRANCH.trim().replaceAll("\"", ""));
  
        } else {
 -        createOptions.add("-v " + getCcmVersionString(VERSION));
-+        createOptions.add("-v " + SCYLLA_VERSION);
++        createOptions.add("-v " + getScyllaCcmVersionString());
        }
        createOptions.addAll(Arrays.asList(DISTRIBUTION.getCcmOptions()));
        execute(

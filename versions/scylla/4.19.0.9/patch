@@ -207,18 +207,6 @@ index e7b2b4e4a0..8fbbed8d95 100644
    }
  
    // Copied from Netty's PlatformDependent to avoid the dependency on Netty
-@@ -343,7 +346,10 @@ public class CcmBridge implements AutoCloseable {
-       if (shouldReplace) {
-         versionString = versionString.replace(".0-", ".");
-       }
--      return "release:" + versionString;
-+      // Dropping release prefix to force CCM to use version downloaded locally by Jenkins since
-+      // resolving proper CCM version argument value based on the Jenkins's scylla-version was
-+      // proven difficult.
-+      return versionString;
-     }
-     // for 4.0 or 5.0 pre-releases, the CCM version string needs to be "4.0-alpha1", "4.0-alpha2" or
-     // "5.0-beta1" Version.toString() always adds a patch value, even if it's not specified when
 @@ -503,7 +509,18 @@ public class CcmBridge implements AutoCloseable {
    }
  
