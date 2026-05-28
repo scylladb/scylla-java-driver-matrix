@@ -1,0 +1,242 @@
+name: Integration Tests
+
+on:
+  workflow_call:
+    inputs:
+      driver_repository:
+        description: Driver repository to test, for example datastax/java-driver or scylladb/java-driver.
+        required: true
+        type: string
+      driver_type:
+        description: Driver family used by the matrix code.
+        required: true
+        type: string
+      driver_ref:
+        description: Driver git ref to test. When empty, the latest tag from the driver repository is used.
+        required: false
+        type: string
+        default: ""
+      scylla_version:
+        description: Scylla version or alias to test. Supported aliases are LATEST, PRIOR, LTS-LATEST, and LTS-PRIOR. When empty, LATEST is used.
+        required: false
+        type: string
+        default: ""
+      tests:
+        description: Optional test selector passed through to the runner.
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    env:
+      WORKSPACE: ${{ github.workspace }}
+      CCM_DIR: ${{ github.workspace }}/scylla-ccm
+    steps:
+      - name: Checkout matrix
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve latest driver ref
+        if: ${{ inputs.driver_ref == '' }}
+        id: get-driver-ref
+        uses: scylladb-actions/get-version@v0.4.5
+        with:
+          source: github-tag
+          repo: ${{ inputs.driver_repository }}
+          filters: LAST
+          github-token: ${{ github.token }}
+
+      - name: Select Scylla version query
+        id: scylla-query
+        env:
+          SCYLLA_VERSION: ${{ inputs.scylla_version }}
+        run: |
+          set -euo pipefail
+
+          target="${SCYLLA_VERSION:-LATEST}"
+          filters=""
+          fallback_repo=""
+          needs_resolution=true
+
+          # get-version treats dots as version-component separators. The regex components below
+          # match only calendar-release Docker tags shaped like YYYY.MINOR.PATCH, for example
+          # 2026.1.4. The selector after "and" then chooses from those matching tags:
+          # LAST.LAST.LAST = newest patch in the newest minor of the newest calendar major,
+          # LAST.LAST.LAST-1 = previous patch in that same minor, LAST.1.LAST = newest LTS
+          # patch in the newest calendar major, and LAST-1.1.LAST = newest LTS patch in the
+          # previous calendar major.
+          case "$target" in
+            LTS-LATEST)
+              filters='^[0-9]{4}$.^[0-9]+$.^[0-9]+$ and LAST.1.LAST'
+              ;;
+            LTS-PRIOR)
+              filters='^[0-9]{4}$.^[0-9]+$.^[0-9]+$ and LAST-1.1.LAST'
+              fallback_repo="scylladb/scylla-enterprise"
+              ;;
+            LATEST)
+              filters='^[0-9]{4}$.^[0-9]+$.^[0-9]+$ and LAST.LAST.LAST'
+              ;;
+            PRIOR)
+              filters='^[0-9]{4}$.^[0-9]+$.^[0-9]+$ and LAST.LAST.LAST-1'
+              ;;
+            *)
+              needs_resolution=false
+              ;;
+          esac
+
+          {
+            echo "target=$target"
+            echo "needs_resolution=$needs_resolution"
+            echo "repo=scylladb/scylla"
+            echo "fallback_repo=$fallback_repo"
+            echo "filters=$filters"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Resolve Scylla version
+        if: ${{ steps.scylla-query.outputs.needs_resolution == 'true' }}
+        id: get-scylla-version
+        uses: scylladb-actions/get-version@v0.4.5
+        with:
+          source: dockerhub-imagetag
+          repo: ${{ steps.scylla-query.outputs.repo }}
+          filters: ${{ steps.scylla-query.outputs.filters }}
+          github-token: ${{ github.token }}
+
+      - name: Resolve Scylla version fallback
+        if: ${{ steps.scylla-query.outputs.fallback_repo != '' && (steps.get-scylla-version.outputs.versions == '' || steps.get-scylla-version.outputs.versions == '[]') }}
+        id: get-scylla-version-fallback
+        uses: scylladb-actions/get-version@v0.4.5
+        with:
+          source: dockerhub-imagetag
+          repo: ${{ steps.scylla-query.outputs.fallback_repo }}
+          filters: ${{ steps.scylla-query.outputs.filters }}
+          github-token: ${{ github.token }}
+
+      - name: Normalize inputs
+        id: resolve
+        env:
+          DRIVER_REF_INPUT: ${{ inputs.driver_ref }}
+          DRIVER_REF_LATEST: ${{ steps.get-driver-ref.outputs.versions }}
+          SCYLLA_VERSION_TARGET: ${{ steps.scylla-query.outputs.target }}
+          SCYLLA_VERSION_NEEDS_RESOLUTION: ${{ steps.scylla-query.outputs.needs_resolution }}
+          SCYLLA_VERSION_RESOLVED: ${{ steps.get-scylla-version.outputs.versions }}
+          SCYLLA_VERSION_FALLBACK: ${{ steps.get-scylla-version-fallback.outputs.versions }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+
+          def pick(input_value: str, latest_json: str, kind: str) -> str:
+              if input_value:
+                  return input_value
+              latest = json.loads(latest_json or "[]")
+              if not latest:
+                  raise SystemExit(f"Unable to resolve {kind}")
+              return latest[0]
+
+          def first_version(versions_json: str) -> str:
+              if not versions_json:
+                  return ""
+              versions = json.loads(versions_json)
+              if isinstance(versions, str):
+                  return versions
+              if isinstance(versions, list):
+                  return versions[0] if versions else ""
+              raise SystemExit(f"Unexpected get-version output: {versions!r}")
+
+          driver_ref = pick(os.environ["DRIVER_REF_INPUT"], os.environ.get("DRIVER_REF_LATEST"), "driver ref")
+          scylla_target = os.environ["SCYLLA_VERSION_TARGET"]
+          if os.environ["SCYLLA_VERSION_NEEDS_RESOLUTION"] == "true":
+              scylla_version = first_version(os.environ.get("SCYLLA_VERSION_RESOLVED", ""))
+              scylla_version = scylla_version or first_version(os.environ.get("SCYLLA_VERSION_FALLBACK", ""))
+              if not scylla_version:
+                  raise SystemExit(f"Unable to resolve Scylla version target {scylla_target}")
+          else:
+              scylla_version = scylla_target
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              fh.write(f"driver_ref={driver_ref}\n")
+              fh.write(f"scylla_version_target={scylla_target}\n")
+              fh.write(f"scylla_version={scylla_version}\n")
+          PY
+
+      - name: Restore CCM download cache
+        id: ccm-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.ccm/scylla-repository
+          key: ccm-${{ runner.os }}-${{ steps.resolve.outputs.scylla_version }}
+
+      - name: Checkout driver repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.driver_repository }}
+          ref: ${{ steps.resolve.outputs.driver_ref }}
+          path: driver
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Restore Maven repository cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-${{ runner.os }}-${{ inputs.driver_repository }}-${{ hashFiles('driver/pom.xml', 'driver/**/pom.xml') }}
+          restore-keys: |
+            m2-${{ runner.os }}-${{ inputs.driver_repository }}-
+
+      - name: Checkout CCM repository
+        uses: actions/checkout@v4
+        with:
+          repository: scylladb/scylla-ccm
+          path: scylla-ccm
+          persist-credentials: false
+
+      - name: Run integration tests
+        env:
+          DRIVER_REF: ${{ steps.resolve.outputs.driver_ref }}
+          DRIVER_TYPE: ${{ inputs.driver_type }}
+          SCYLLA_VERSION: ${{ steps.resolve.outputs.scylla_version }}
+          TESTS: ${{ inputs.tests }}
+        run: |
+          set -euo pipefail
+          args=(./scripts/run_test.sh python3 ./main.py driver --checkout-ref "$DRIVER_REF" --driver-type "$DRIVER_TYPE" --scylla-version "$SCYLLA_VERSION")
+          if [ -n "$TESTS" ]; then
+            args+=(--tests "$TESTS")
+          fi
+          "${args[@]}"
+
+      - name: Inspect CCM download cache
+        id: ccm-snapshot
+        if: ${{ steps.ccm-cache.outputs.cache-hit != 'true' }}
+        run: |
+          set -euo pipefail
+
+          host_dir="$HOME/.ccm/scylla-repository"
+
+          if [ -d "$host_dir" ] && find "$host_dir" -mindepth 1 -type f -print -quit | grep -q .; then
+            file_count=$(find "$host_dir" -type f | wc -l | tr -d ' ')
+            echo "CCM cache available at $host_dir ($file_count files)"
+            echo "snapshot=true" >> "$GITHUB_OUTPUT"
+            echo "files=$file_count" >> "$GITHUB_OUTPUT"
+            du -sh "$host_dir" || true
+            exit 0
+          fi
+
+          echo "CCM cache contents were not available for snapshot"
+          echo "snapshot=false" >> "$GITHUB_OUTPUT"
+
+      - name: Save CCM download cache
+        if: ${{ steps.ccm-cache.outputs.cache-hit != 'true' && steps.ccm-snapshot.outputs.snapshot == 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.ccm/scylla-repository
+          key: ccm-${{ runner.os }}-${{ steps.resolve.outputs.scylla_version }}

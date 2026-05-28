@@ -123,6 +123,25 @@ for gid in $(id -G); do
     group_args+=(--group-add "$gid")
 done
 
+run_test_cmd=$(printf '%q ' "$@")
+
+container_cmd=$(cat <<'EOF'
+set -e
+pip install --user -e __CCM_DIR__
+export PATH="$PATH:${HOME}/.local/bin"
+export PYTHONPATH="__CCM_DIR__:${PYTHONPATH:-}"
+python3 - <<'PY'
+import ccmlib.scylla_repository as sr
+print(f"CCM repository module: {sr.__file__}")
+PY
+set +e
+__RUN_TEST_CMD__
+status=$?
+exit "${status}"
+EOF
+)
+container_cmd=${container_cmd//__CCM_DIR__/${CCM_DIR}}
+container_cmd=${container_cmd/__RUN_TEST_CMD__/${run_test_cmd}}
 
 docker_cmd="docker run --init --detach=true \
     ${WORKSPACE_MNT} \
@@ -152,7 +171,7 @@ docker_cmd="docker run --init --detach=true \
     -v "/tmp":"/tmp" \
     --tmpfs ${HOME}/.config \
     --network=host --privileged \
-    ${DOCKER_IMAGE} bash -c 'pip install --user -e ${CCM_DIR} ;  export PATH=\$PATH:\${HOME}/.local/bin; $*'"
+    ${DOCKER_IMAGE} bash -c $(printf '%q' "$container_cmd")"
 
 echo "Running Docker: $docker_cmd"
 container=$(eval $docker_cmd)
@@ -185,4 +204,3 @@ trap - SIGTERM SIGINT SIGHUP EXIT
 [[ -z "$exitcode" ]] && exitcode=1
 
 exit "$exitcode"
-

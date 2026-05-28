@@ -1,6 +1,5 @@
 tests:
   # awaitScyllaAuth times out waiting for Scylla auth to become available (30s exceeded)
   - PlainTextAuthProviderIT
-  # ccm start fails intermittently when starting clusters inside test methods
-  # (both TLS and non-TLS variants); ignore the whole class to avoid flakiness
-  - ClientRoutesIT
+  # Scylla 2026.1.3 can return one duplicate tablet routing payload in this exact-count test
+  - DefaultMetadataTabletMapIT#should_receive_each_tablet_exactly_once

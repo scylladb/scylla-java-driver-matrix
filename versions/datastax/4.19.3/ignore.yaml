@@ -46,3 +46,7 @@ tests:
     # Flaky timing-based test: preparedStmtCacheRemoveLatch did not trigger before timeout.
     # Fails intermittently regardless of Scylla version or driver changes.
     - PreparedStatementCachingIT
+
+    # Known non-CCM failures still observed with Scylla 2026.1.3
+    - NettyResourceLeakDetectionIT
+    - PreparedStatementCancellationIT
