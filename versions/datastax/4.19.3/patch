@@ -916,18 +916,34 @@ index f0ce6bc..e76d46b 100644
      this.cassandraConfiguration = cassandraConfiguration;
      this.dseConfiguration = dseConfiguration;
      this.rawDseYaml = dseConfigurationRawYaml;
-@@ -196,6 +199,16 @@ public class CcmBridge implements AutoCloseable {
+@@ -196,6 +199,32 @@ public class CcmBridge implements AutoCloseable {
      return DistributionCassandraVersions.getCassandraVersion(DISTRIBUTION, VERSION);
    }
  
++  // Returns the version string for CCM cluster creation when running against ScyllaDB.
++  // The "release:" prefix is intentionally omitted here. When "release:" is prepended,
++  // CCM attempts to resolve and download the version from its S3-based release repository,
++  // which fails in two distinct ways:
++  //   - Dev/unstable builds (e.g. "2026.3.0~dev"): CCM cannot parse the version and
++  //     returns "s3 url was not found for :2026.3" (colon from the tilde-split).
++  //   - Stable-branch builds (e.g. "2025.1.13", "2026.1.5"): CCM finds no matching
++  //     release package on S3 and raises "ValueError: Release packages have not been found."
++  // In both cases the CCM cluster never starts and all integration tests fail.
++  // Jenkins pre-downloads the ScyllaDB relocatable and installs it locally before running
++  // tests, so CCM must use the locally-installed version -- not fetch a fresh one from S3.
++  // Passing the raw version string (without any prefix) causes CCM to use the local install.
++  // This mirrors the fix applied in the scylla driver 4.18.1.0 patch for the same reason.
++  // Regression introduced by PR #147 (commit 3107868) which added getScyllaCcmVersionString()
++  // and incorrectly prepended "release:" -- prior to that PR the patches passed SCYLLA_VERSION
++  // directly and all pipelines were green.
 +  private String getScyllaCcmVersionString() {
 +    if (SCYLLA_VERSION == null || SCYLLA_VERSION.isEmpty()) {
-+      return "release:" + getCcmVersionString(VERSION);
++      return getCcmVersionString(VERSION);
 +    }
 +    if (SCYLLA_VERSION.contains(":")) {
 +      return SCYLLA_VERSION;
 +    }
-+    return "release:" + SCYLLA_VERSION;
++    return SCYLLA_VERSION;
 +  }
 +
    private String getCcmVersionString(Version version) {
