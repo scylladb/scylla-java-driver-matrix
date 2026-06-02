@@ -449,15 +449,20 @@ index 7b4d28cedf..88fe5b9809 100644
      this.cassandraConfiguration = cassandraConfiguration;
      this.dseConfiguration = dseConfiguration;
      this.rawDseYaml = dseConfigurationRawYaml;
-@@ -329,7 +332,10 @@ public class CcmBridge implements AutoCloseable {
+@@ -329,7 +332,13 @@ public class CcmBridge implements AutoCloseable {
        if (shouldReplace) {
          versionString = versionString.replace(".0-", ".");
        }
 -      return "release:" + versionString;
-+      // Dropping release prefix to force CCM to use version downloaded locally by Jenkins since
-+      // resolving proper CCM version argument value based on the Jenkins's scylla-version was
-+      // proven difficult.
-+      return versionString;
++      // When SCYLLA_UNIFIED_PACKAGE is set, a local ScyllaDB tarball is available (e.g.
++      // Jenkins pre-downloads dev/unreleased builds that are not published to S3). Pass the
++      // bare version string so CCM resolves via packages_from_env() and uses the local file.
++      // When not set (e.g. GH Actions CI), prepend "release:" so CCM downloads the published
++      // release from S3. This avoids "release:<dev-version>" S3 lookup failures on Jenkins.
++      if (System.getenv("SCYLLA_UNIFIED_PACKAGE") != null) {
++        return versionString;
++      }
++      return "release:" + versionString;
      }
      // for 4.0 pre-releases, the CCM version string needs to be "4.0-alpha1" or "4.0-alpha2"
      // Version.toString() always adds a patch value, even if it's not specified when parsing.
