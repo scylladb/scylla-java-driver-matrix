@@ -529,7 +529,18 @@ index e7b2b4e4a..a4b2ecea7 100644
    }
  
    // Copied from Netty's PlatformDependent to avoid the dependency on Netty
-@@ -503,7 +506,18 @@ public class CcmBridge implements AutoCloseable {
+@@ -343,7 +346,9 @@
+       if (shouldReplace) {
+         versionString = versionString.replace(".0-", ".");
+       }
+-      return "release:" + versionString;
++      // Dropping "release:" prefix so CCM uses the locally-installed Scylla package instead of
++      // attempting to download from S3. See versions/scylla/4.18.1.0/patch for the same fix.
++      return versionString;
+     }
+     // for 4.0 or 5.0 pre-releases, the CCM version string needs to be "4.0-alpha1", "4.0-alpha2" or
+     // "5.0-beta1" Version.toString() always adds a patch value, even if it's not specified when
+ @@ -503,7 +506,18 @@ public class CcmBridge implements AutoCloseable {
    }
  
    public void addWithoutStart(int n, String dc) {
