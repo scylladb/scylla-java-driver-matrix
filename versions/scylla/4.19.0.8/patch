@@ -540,7 +540,7 @@ index e7b2b4e4a..a4b2ecea7 100644
      }
      // for 4.0 or 5.0 pre-releases, the CCM version string needs to be "4.0-alpha1", "4.0-alpha2" or
      // "5.0-beta1" Version.toString() always adds a patch value, even if it's not specified when
- @@ -503,7 +506,18 @@ public class CcmBridge implements AutoCloseable {
+@@ -503,7 +508,18 @@ public class CcmBridge implements AutoCloseable {
    }
  
    public void addWithoutStart(int n, String dc) {
