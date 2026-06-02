@@ -916,7 +916,7 @@ index f0ce6bc5b..e76d46b11 100644
      this.cassandraConfiguration = cassandraConfiguration;
      this.dseConfiguration = dseConfiguration;
      this.rawDseYaml = dseConfigurationRawYaml;
-@@ -196,6 +199,36 @@ public class CcmBridge implements AutoCloseable {
+@@ -196,6 +199,35 @@ public class CcmBridge implements AutoCloseable {
      return DistributionCassandraVersions.getCassandraVersion(DISTRIBUTION, VERSION);
    }
  

@@ -449,7 +449,7 @@ index 7b4d28cedf..88fe5b9809 100644
      this.cassandraConfiguration = cassandraConfiguration;
      this.dseConfiguration = dseConfiguration;
      this.rawDseYaml = dseConfigurationRawYaml;
-@@ -329,7 +332,13 @@ public class CcmBridge implements AutoCloseable {
+@@ -329,7 +332,15 @@ public class CcmBridge implements AutoCloseable {
        if (shouldReplace) {
          versionString = versionString.replace(".0-", ".");
        }

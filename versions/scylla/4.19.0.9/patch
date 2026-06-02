@@ -207,7 +207,7 @@ index e7b2b4e4a0..8fbbed8d95 100644
    }
  
    // Copied from Netty's PlatformDependent to avoid the dependency on Netty
-@@ -343,7 +346,13 @@
+@@ -343,7 +346,15 @@
        if (shouldReplace) {
          versionString = versionString.replace(".0-", ".");
        }
