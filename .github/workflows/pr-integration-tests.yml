@@ -91,7 +91,12 @@ jobs:
           echo "scripts/image was updated."
 
   current-workflow:
-    name: ${{ matrix.driver_type }} / Scylla ${{ matrix.scylla_version }}
+    # No explicit name: when this job is skipped (runner_changed == false), GitHub Actions
+    # collapses the entire matrix to a single UI entry and displays the job name with
+    # unevaluated template variables (e.g. "${{ matrix.driver_type }} / Scylla
+    # ${{ matrix.scylla_version }}"). With no name field, GitHub falls back to the job ID
+    # ("current-workflow") when skipped, and auto-appends matrix values per row when running:
+    # e.g. "current-workflow (datastax, LATEST) / integration-test".
     needs: changes
     if: ${{ needs.changes.outputs.runner_changed == 'true' }}
     strategy:
