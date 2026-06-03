@@ -125,7 +125,10 @@ jobs:
       scylla_version: ${{ matrix.scylla_version }}
 
   changed-driver-version-tests:
-    name: ${{ matrix.driver_type }} ${{ matrix.driver_version }} / Scylla LATEST
+    # No explicit name for the same reason as current-workflow above: when skipped
+    # (version_count == 0), GitHub would display the unevaluated template string
+    # "${{ matrix.driver_type }} ${{ matrix.driver_version }} / Scylla LATEST".
+    # Without a name, GitHub uses the job ID and auto-appends matrix values when running.
     needs: changes
     if: ${{ needs.changes.outputs.version_count != '0' }}
     strategy:
