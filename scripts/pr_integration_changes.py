@@ -14,7 +14,10 @@ IMAGE_SOURCE_PATHS = {"scripts/Dockerfile", "scripts/requirements.txt"}
 
 RUNNER_PATHS = {
     ".github/workflows/integration-tests.yml",
-    ".github/workflows/pr-integration-tests.yml",
+    # pr-integration-tests.yml intentionally excluded here to simulate runner_changed == false,
+    # forcing current-workflow to be skipped. This is a temporary revertable change to document
+    # the skipped-job UI behavior (Scenario 2 of PR #151 CI validation).
+    # ".github/workflows/pr-integration-tests.yml",
     "scripts/run_test.sh",
     "scripts/image",
     *IMAGE_SOURCE_PATHS,
