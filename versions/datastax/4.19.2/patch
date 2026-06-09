@@ -916,15 +916,34 @@ index f0ce6bc5b..e76d46b11 100644
      this.cassandraConfiguration = cassandraConfiguration;
      this.dseConfiguration = dseConfiguration;
      this.rawDseYaml = dseConfigurationRawYaml;
-@@ -196,6 +199,16 @@ public class CcmBridge implements AutoCloseable {
+@@ -196,6 +199,35 @@ public class CcmBridge implements AutoCloseable {
      return DistributionCassandraVersions.getCassandraVersion(DISTRIBUTION, VERSION);
    }
  
++  // Returns the version string for CCM cluster creation when running against ScyllaDB.
++  // CCM interprets the prefix before ":" to choose the download source:
++  //   - "release:<version>" → resolves and downloads from the S3 release repository.
++  //   - No prefix          → skips S3 entirely; reads SCYLLA_UNIFIED_PACKAGE from env.
++  // When SCYLLA_UNIFIED_PACKAGE is set, a local tarball is available (e.g. Jenkins
++  // pre-downloads dev/unreleased builds not published to S3). Passing a bare version
++  // causes CCM to use that local file via packages_from_env().
++  // When SCYLLA_UNIFIED_PACKAGE is not set (e.g. GH Actions CI), prepend "release:" so
++  // CCM downloads the published release from S3.
++  // This avoids "release:<dev-version>" S3 lookup failures on Jenkins while still
++  // allowing GH Actions to download released versions automatically.
++  // Regression introduced by PR #147 (commit 3107868) which added getScyllaCcmVersionString()
++  // and incorrectly prepended "release:" -- prior to that PR the patches passed SCYLLA_VERSION
++  // directly and all pipelines were green.
 +  private String getScyllaCcmVersionString() {
 +    if (SCYLLA_VERSION == null || SCYLLA_VERSION.isEmpty()) {
-+      return "release:" + getCcmVersionString(VERSION);
++      return getCcmVersionString(VERSION);
 +    }
 +    if (SCYLLA_VERSION.contains(":")) {
++      // Already has a CCM prefix (e.g. "unstable/master:date") — pass through as-is.
++      return SCYLLA_VERSION;
++    }
++    // Use local tarball when available, otherwise download from S3.
++    if (System.getenv("SCYLLA_UNIFIED_PACKAGE") != null) {
 +      return SCYLLA_VERSION;
 +    }
 +    return "release:" + SCYLLA_VERSION;
