@@ -39,7 +39,7 @@ jobs:
       CCM_DIR: ${{ github.workspace }}/scylla-ccm
     steps:
       - name: Checkout matrix
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -47,7 +47,7 @@ jobs:
       - name: Resolve latest driver ref
         if: ${{ inputs.driver_ref == '' }}
         id: get-driver-ref
-        uses: scylladb-actions/get-version@v0.4.5
+        uses: scylladb-actions/get-version@a1dc4fedfb5684242148020b24e4150b1fe7ad08 # v0.4.5
         with:
           source: github-tag
           repo: ${{ inputs.driver_repository }}
@@ -103,7 +103,7 @@ jobs:
       - name: Resolve Scylla version
         if: ${{ steps.scylla-query.outputs.needs_resolution == 'true' }}
         id: get-scylla-version
-        uses: scylladb-actions/get-version@v0.4.5
+        uses: scylladb-actions/get-version@a1dc4fedfb5684242148020b24e4150b1fe7ad08 # v0.4.5
         with:
           source: dockerhub-imagetag
           repo: ${{ steps.scylla-query.outputs.repo }}
@@ -113,7 +113,7 @@ jobs:
       - name: Resolve Scylla version fallback
         if: ${{ steps.scylla-query.outputs.fallback_repo != '' && (steps.get-scylla-version.outputs.versions == '' || steps.get-scylla-version.outputs.versions == '[]') }}
         id: get-scylla-version-fallback
-        uses: scylladb-actions/get-version@v0.4.5
+        uses: scylladb-actions/get-version@a1dc4fedfb5684242148020b24e4150b1fe7ad08 # v0.4.5
         with:
           source: dockerhub-imagetag
           repo: ${{ steps.scylla-query.outputs.fallback_repo }}
@@ -171,13 +171,13 @@ jobs:
 
       - name: Restore CCM download cache
         id: ccm-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.ccm/scylla-repository
           key: ccm-${{ runner.os }}-${{ steps.resolve.outputs.scylla_version }}
 
       - name: Checkout driver repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           repository: ${{ inputs.driver_repository }}
           ref: ${{ steps.resolve.outputs.driver_ref }}
@@ -186,7 +186,7 @@ jobs:
           persist-credentials: false
 
       - name: Restore Maven repository cache
-        uses: actions/cache@v4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.m2/repository
           key: m2-${{ runner.os }}-${{ inputs.driver_repository }}-${{ hashFiles('driver/pom.xml', 'driver/**/pom.xml') }}
@@ -194,7 +194,7 @@ jobs:
             m2-${{ runner.os }}-${{ inputs.driver_repository }}-
 
       - name: Checkout CCM repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           repository: scylladb/scylla-ccm
           path: scylla-ccm
@@ -236,7 +236,7 @@ jobs:
 
       - name: Save CCM download cache
         if: ${{ steps.ccm-cache.outputs.cache-hit != 'true' && steps.ccm-snapshot.outputs.snapshot == 'true' }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.ccm/scylla-repository
           key: ccm-${{ runner.os }}-${{ steps.resolve.outputs.scylla_version }}
