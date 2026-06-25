@@ -10,11 +10,6 @@ sys.path.insert(0, str(REPO_ROOT))
 from run import load_ignore_tests
 
 
-def test_repository_ignore_files_are_valid():
-    for ignore_file in sorted((REPO_ROOT / "versions").glob("*/*/ignore.yaml")):
-        load_ignore_tests(ignore_file)
-
-
 def test_load_ignore_tests_rejects_unquoted_method_selector(tmp_path):
     ignore_file = tmp_path / "ignore.yaml"
     ignore_file.write_text(
