@@ -6,15 +6,24 @@ import shutil
 import shlex
 import subprocess
 import sys
-from distutils.util import strtobool
 from functools import cached_property
 from pathlib import Path
-from typing import Set
+from typing import List, Sequence, Set
 from packaging.version import Version
 
 import yaml
 
 from processjunit import ProcessJUnit
+
+
+def strtobool(value: str) -> bool:
+    value = value.lower()
+    if value in ("y", "yes", "t", "true", "on", "1"):
+        return True
+    if value in ("n", "no", "f", "false", "off", "0"):
+        return False
+    raise ValueError(f"invalid truth value {value!r}")
+
 
 DEV_MODE = bool(strtobool(os.environ.get("DEV_MODE", "False")))
 
@@ -98,13 +107,21 @@ class Run:
             result['INSTALL_DIRECTORY'] = self._scylla_install_dir
         return result
 
-    def _run_command_in_shell(self, cmd: str):
-        logging.info("Execute the cmd '%s'", cmd)
-        with subprocess.Popen(cmd, shell=True, executable="/bin/bash", env=self.environment,
-                              cwd=self._java_driver_git, stderr=subprocess.PIPE, text=True) as proc:
+    def _run_command(self, cmd: Sequence[str]):
+        cmd = [str(arg) for arg in cmd]
+        logging.info("Execute the cmd '%s'", shlex.join(cmd))
+        with subprocess.Popen(cmd, env=self.environment, cwd=self._java_driver_git,
+                              stderr=subprocess.PIPE, text=True) as proc:
             _, stderr = proc.communicate()
             status_code = proc.returncode
         assert status_code == 0, stderr
+
+    def _mvn_command(self, *args: str) -> List[str]:
+        cmd = ["mvn"]
+        if not sys.stdout.isatty():
+            cmd.append("-B")
+        cmd.extend(args)
+        return cmd
 
     def _apply_patch_files(self) -> bool:
         is_dir_empty = True
@@ -113,17 +130,29 @@ class Run:
             if file_path.name.startswith("patch"):
                 try:
                     logging.info("Show patch's statistics for file '%s'", file_path)
-                    self._run_command_in_shell(f"git apply --stat {file_path}")
+                    self._run_command(["git", "apply", "--stat", str(file_path)])
                     logging.info("Detect patch's errors for file '%s'", file_path)
-                    self._run_command_in_shell(f"git apply -v --check {file_path}")
+                    self._run_command(["git", "apply", "-v", "--check", str(file_path)])
                     logging.info("Applying patch file '%s'", file_path)
-                    self._run_command_in_shell(f"patch -p1 -i {file_path}")
+                    self._run_command(["patch", "-p1", "-i", str(file_path)])
                 except Exception as exc:
                     logging.error("Failed to apply patch '%s' to version '%s', with: '%s'",
                                   file_path, self._tag, str(exc))
                     raise
         if is_dir_empty:
             logging.warning("The '%s' directory does not contain any files", self.version_folder)
+
+    def _test_command(self, tests_string: str) -> List[str]:
+        if self._tag.startswith('3'):
+            tests_string = tests_string or '*'
+            return self._mvn_command(
+                "-pl", "driver-core", "-Dtest.groups=short,long", f"-Dtest={tests_string}", "test"
+            )
+
+        cmd = self._mvn_command("-pl", "integration-tests", "integration-test")
+        if tests_string:
+            cmd.append(f"-Dit.test={tests_string}")
+        return cmd
 
     def create_metadata_for_failure(self, reason: str) -> None:
         reports_dir = Path(os.path.dirname(__file__)) / "reports"
@@ -138,9 +167,9 @@ class Run:
         metadata_file.write_text(json.dumps(metadata))
 
     def run(self) -> ProcessJUnit:
-        self._run_command_in_shell("git checkout .")
+        self._run_command(["git", "checkout", "."])
         logging.info("Checking out driver ref '%s' for version '%s'", self._checkout_ref, self._tag)
-        self._run_command_in_shell(f"git checkout {shlex.quote(self._checkout_ref)}")
+        self._run_command(["git", "checkout", self._checkout_ref])
         self._apply_patch_files()
 
         if self._patch_only:
@@ -151,41 +180,33 @@ class Run:
         if exclude_str := ','.join(f"!{ignore_element}" for ignore_element in self.ignore_tests):
             tests_string = f"{exclude_str},{tests_string}".rstrip(',')
 
-        no_tty = '' if sys.stdout.isatty() else '-B'
-
         logging.info("Formatting the Java-driver code after applying the patch")
-        self._run_command_in_shell(f"mvn {no_tty} com.coveo:fmt-maven-plugin:format")
+        self._run_command(self._mvn_command("com.coveo:fmt-maven-plugin:format"))
 
-        self._run_command_in_shell(f"mvn {no_tty} clean")
+        self._run_command(self._mvn_command("clean"))
         logging.info("Starting build the version")
-        self._run_command_in_shell(f"mvn {no_tty} install -DskipTests=true -Dmaven.javadoc.skip=true -V")
+        self._run_command(self._mvn_command("install", "-DskipTests=true", "-Dmaven.javadoc.skip=true", "-V"))
 
-        cmd = f"mvn {no_tty} -pl integration-tests integration-test"
-
-        if tests_string:
-            cmd += f" -Dit.test='{tests_string}'"
-
-        if self._tag.startswith('3'):
-            cmd = f"mvn {no_tty} -pl driver-core -Dtest.groups='short,long' -Dtest='{tests_string}' test"
+        cmd = self._test_command(tests_string)
 
         shutil.rmtree(self._report_path, ignore_errors=True)
         if self._scylla_version:
             if self._tag.startswith('3') or self._driver_type != 'scylla':
-                cmd += f" -Dscylla.version={self._scylla_version}"
+                cmd.append(f"-Dscylla.version={self._scylla_version}")
             else:
                 # Way it works after 4.19.0.0 `ccm.distribution` was introduced
-                cmd += f" -Dccm.version={self._scylla_version} -Dccm.distribution=scylla"
+                cmd.extend([f"-Dccm.version={self._scylla_version}", "-Dccm.distribution=scylla"])
                 # Before 4.19.0.0 it required a flag:
-                cmd += f" -Dccm.scylla"
+                cmd.append("-Dccm.scylla")
 
         elif self._scylla_install_dir:
-            cmd += f" -Dccm.directory={self._scylla_install_dir}"
+            cmd.append(f"-Dccm.directory={self._scylla_install_dir}")
         else:
             raise ValueError("No scylla version or Cassandra dir defined")
 
         logging.info("Starting run the tests")
         try:
-            self._run_command_in_shell(cmd)
+            self._run_command(cmd)
             logging.info("All tests are passed for '%s' version", self._tag)
         except AssertionError:
             # Some tests are failed
