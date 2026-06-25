@@ -28,15 +28,16 @@ index 4c9ba61fc5..fa14e1a47a 100644
  
      String installDirectory = System.getProperty("cassandra.directory");
      String branch = System.getProperty("cassandra.branch");
-@@ -206,7 +207,10 @@ public class CCMBridge implements CCMAccess {
+@@ -206,7 +207,11 @@ public class CCMBridge implements CCMAccess {
        installArgs.add("-v git:" + branch.trim().replaceAll("\"", ""));
      } else if (inputScyllaVersion != null && !inputScyllaVersion.trim().isEmpty()) {
        installArgs.add(" --scylla ");
 -      installArgs.add("-v release:" + inputScyllaVersion);
-+      // Dropping release prefix to force CCM to use version downloaded locally by Jenkins since
-+      // resolving proper CCM version argument value based on the Jenkins's scylla-version was
-+      // proven difficult.
-+      installArgs.add("-v " + inputScyllaVersion);
++      // Use release: prefix in GitHub Actions (no local tarball); bare version in Jenkins
++      // where SCYLLA_UNIFIED_PACKAGE points CCM to a local tarball via packages_from_env().
++      String scyllaCcmVersion = System.getenv("SCYLLA_UNIFIED_PACKAGE") != null
++          ? inputScyllaVersion : "release:" + inputScyllaVersion;
++      installArgs.add("-v " + scyllaCcmVersion);
  
        // Detect Scylla Enterprise - it should start with
        // a 4-digit year.
