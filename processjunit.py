@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 from ast import literal_eval
 from functools import cached_property, lru_cache
 from pathlib import Path
@@ -30,18 +31,13 @@ class ProcessJUnit:
             if is_first_run:
                 is_first_run = False
                 properties_element = tree.find("properties")
-                new_properties_element = ElementTree.SubElement(
-                    new_tree, properties_element.tag, attrib=properties_element.attrib)
-                _ = [ElementTree.SubElement(new_properties_element, element.tag, attrib=element.attrib)
-                     for element in properties_element]
+                if properties_element is not None:
+                    new_tree.append(deepcopy(properties_element))
             for testcase_parent_element in tree.iterfind("testcase"):
-                attrib = testcase_parent_element.attrib
+                new_testcase_parent_element = deepcopy(testcase_parent_element)
+                attrib = new_testcase_parent_element.attrib
                 attrib['classname'] = f"{self.driver_type}.{self.tag}.{attrib['classname']}"
-                new_testcase_parent_element = ElementTree.SubElement(
-                    new_tree, testcase_parent_element.tag, attrib=testcase_parent_element.attrib)
-                _ = [ElementTree.SubElement(new_testcase_parent_element, testcase_child_element.tag,
-                                            attrib=testcase_child_element.attrib)
-                     for testcase_child_element in testcase_parent_element]
+                new_tree.append(new_testcase_parent_element)
 
         new_tree.attrib["name"] = self.report_path.stem
         new_tree.attrib.update({key: str(value) for key, value in self._summary.items()})
@@ -63,4 +59,3 @@ class ProcessJUnit:
     def clear_original_reports(self):
         logging.info("Removing all run's xml files of '%s' version", self.tag)
         shutil.rmtree(self.tests_result_path)
-
