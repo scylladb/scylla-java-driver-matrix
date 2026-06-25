@@ -92,7 +92,6 @@ jobs:
 
   current-workflow:
     # Comment-only trigger point for temporary PRs that need to exercise the full runner matrix.
-    # Trigger marker: final master integration check after issue-fix PRs.
     # No explicit name: when this job is skipped (runner_changed == false), GitHub Actions
     # collapses the entire matrix to a single UI entry and displays the job name with
     # unevaluated template variables (e.g. "${{ matrix.driver_type }} / Scylla

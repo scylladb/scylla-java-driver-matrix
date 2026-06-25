@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+# CI trigger marker: final master integration check after issue-fix PRs.
+
 help_text="
 $(basename $0) - Run java-driver integration tests over scylla using docker
 
