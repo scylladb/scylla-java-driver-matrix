@@ -28,6 +28,55 @@ def strtobool(value: str) -> bool:
 DEV_MODE = bool(strtobool(os.environ.get("DEV_MODE", "False")))
 
 
+def load_ignore_tests(ignore_file_path: Path) -> Set[str]:
+    if not ignore_file_path.is_file():
+        return set()
+
+    text = ignore_file_path.read_text(encoding="utf-8")
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if re.match(r"^\s*-\s+[^'\"#\n][^#\n]*\s+#\S", line):
+            raise ValueError(
+                f"Invalid test selector in '{ignore_file_path}' at line {line_number}: "
+                "entries containing '#' must be quoted"
+            )
+
+    content = yaml.safe_load(text)
+    if content is None:
+        return set()
+    if not isinstance(content, dict):
+        raise ValueError(f"The '{ignore_file_path}' file must contain a YAML mapping")
+
+    tests = content.get('tests')
+    if tests is None:
+        return set()
+    if not isinstance(tests, list):
+        raise ValueError(f"The 'tests' entry in '{ignore_file_path}' must be a list")
+
+    result = set()
+    invalid_indexes = []
+    duplicates = []
+    for index, test_name in enumerate(tests, start=1):
+        if not isinstance(test_name, str) or not test_name.strip():
+            invalid_indexes.append(index)
+            continue
+        test_name = test_name.strip()
+        if test_name in result:
+            duplicates.append(test_name)
+            continue
+        result.add(test_name)
+
+    if invalid_indexes or duplicates:
+        details = []
+        if invalid_indexes:
+            indexes = ", ".join(str(index) for index in invalid_indexes)
+            details.append(f"empty or non-string entries at indexes: {indexes}")
+        if duplicates:
+            details.append(f"duplicate entries: {', '.join(duplicates)}")
+        raise ValueError(f"Invalid ignore tests in '{ignore_file_path}': {'; '.join(details)}")
+
+    return result
+
+
 class Run:
     def __init__(self, java_driver_git, scylla_install_dir, tag, tests, driver_type, scylla_version=None, patch_only=False, checkout_ref=None):
         self._patch_only = patch_only
@@ -87,15 +136,8 @@ class Run:
 
     @cached_property
     def ignore_tests(self) -> Set[str]:
-        result = set()
         ignore_file_path = self.version_folder / "ignore.yaml"
-        if not ignore_file_path.is_file():
-            return result
-        with ignore_file_path.open(mode="r", encoding="utf-8") as file:
-            content = yaml.safe_load(file)
-            if content and isinstance(content, dict) and 'tests' in content and content['tests'] is not None:
-                result.update(content['tests'])
-        return result
+        return load_ignore_tests(ignore_file_path)
 
     @cached_property
     def environment(self):

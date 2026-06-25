@@ -117,13 +117,7 @@ tests:
 
     # expected "Undefined column name d" and got "Undefined name d"
     - PreparedStatementIT#should_fail_to_reprepare_if_query_becomes_invalid
-
-    - PreparedStatementIT#should_not_store_metadata_for_conditional_updates
-    - PreparedStatementIT#should_update_metadata_when_schema_changed_across_executions
-    - PreparedStatementIT#should_update_metadata_when_schema_changed_across_sessions
-    -
     # java.lang.IllegalArgumentException: Can't use per-request keyspace with protocol V4
-    - PerRequestKeyspaceIT#hould_execute_batch_with_explicit_keyspace
     - PerRequestKeyspaceIT#should_execute_batch_with_inferred_keyspace
     - PerRequestKeyspaceIT#should_execute_simple_statement_with_keyspace
     - PerRequestKeyspaceIT#should_prepare_statement_with_keyspace
