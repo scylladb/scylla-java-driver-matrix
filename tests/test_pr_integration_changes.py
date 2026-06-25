@@ -47,3 +47,20 @@ def test_ccm_cache_restore_and_save_use_the_same_path():
 
     assert restore["with"]["path"] == "~/.ccm/scylla-repository"
     assert save["with"]["path"] == restore["with"]["path"]
+
+
+def test_integration_workflow_uploads_reports_after_failures():
+    workflow = yaml.safe_load((REPO_ROOT / ".github/workflows/integration-tests.yml").read_text())
+    steps = workflow["jobs"]["integration-test"]["steps"]
+    reports = next(step for step in steps if step.get("name") == "Upload integration test reports")
+    ccm_logs = next(step for step in steps if step.get("name") == "Upload CCM logs")
+
+    for step in (reports, ccm_logs):
+        assert step["if"] == "${{ always() }}"
+        assert step["uses"].startswith("actions/upload-artifact@")
+        assert len(step["uses"].removeprefix("actions/upload-artifact@")) == 40
+
+    assert "reports/" in reports["with"]["path"]
+    assert "driver/integration-tests/target/failsafe-reports/" in reports["with"]["path"]
+    assert "driver/driver-core/target/surefire-reports/" in reports["with"]["path"]
+    assert "~/.ccm/*/node*/logs/**" in ccm_logs["with"]["path"]

@@ -125,6 +125,7 @@ jobs:
         env:
           DRIVER_REF_INPUT: ${{ inputs.driver_ref }}
           DRIVER_REF_LATEST: ${{ steps.get-driver-ref.outputs.versions }}
+          DRIVER_TYPE: ${{ inputs.driver_type }}
           SCYLLA_VERSION_TARGET: ${{ steps.scylla-query.outputs.target }}
           SCYLLA_VERSION_NEEDS_RESOLUTION: ${{ steps.scylla-query.outputs.needs_resolution }}
           SCYLLA_VERSION_RESOLVED: ${{ steps.get-scylla-version.outputs.versions }}
@@ -134,6 +135,7 @@ jobs:
           python3 - <<'PY'
           import json
           import os
+          import re
 
           def pick(input_value: str, latest_json: str, kind: str) -> str:
               if input_value:
@@ -167,6 +169,8 @@ jobs:
               fh.write(f"driver_ref={driver_ref}\n")
               fh.write(f"scylla_version_target={scylla_target}\n")
               fh.write(f"scylla_version={scylla_version}\n")
+              artifact_suffix = re.sub(r"[^A-Za-z0-9_.-]+", "-", f"{os.environ['DRIVER_TYPE']}-{driver_ref}-{scylla_version}")
+              fh.write(f"artifact_suffix={artifact_suffix}\n")
           PY
 
       - name: Restore CCM download cache
@@ -213,6 +217,29 @@ jobs:
             args+=(--tests "$TESTS")
           fi
           "${args[@]}"
+
+      - name: Upload integration test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: integration-reports-${{ steps.resolve.outputs.artifact_suffix }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            reports/
+            driver/integration-tests/target/failsafe-reports/
+            driver/driver-core/target/surefire-reports/
+
+      - name: Upload CCM logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ccm-logs-${{ steps.resolve.outputs.artifact_suffix }}
+          if-no-files-found: ignore
+          retention-days: 14
+          path: |
+            ~/.ccm/*/node*/logs/**
+            ~/.ccm/*/*.log
 
       - name: Inspect CCM download cache
         id: ccm-snapshot
