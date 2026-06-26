@@ -41,13 +41,13 @@ tests:
         load_ignore_tests(ignore_file)
 
 
-def test_datastax_4x_ignores_sni_proxy_tests():
-    for ignore_file in sorted((REPO_ROOT / "versions" / "datastax").glob("4.*/ignore.yaml")):
+def test_apache_4x_ignores_sni_proxy_tests():
+    for ignore_file in sorted((REPO_ROOT / "versions" / "apache").glob("4.*/ignore.yaml")):
         content = yaml.safe_load(ignore_file.read_text(encoding="utf-8"))
 
         assert "ScyllaSniProxyTest" in content["tests"], ignore_file
 
 
-def test_datastax_ignore_files_are_valid():
-    for ignore_file in sorted((REPO_ROOT / "versions" / "datastax").glob("*/ignore.yaml")):
+def test_apache_ignore_files_are_valid():
+    for ignore_file in sorted((REPO_ROOT / "versions" / "apache").glob("*/ignore.yaml")):
         load_ignore_tests(ignore_file)

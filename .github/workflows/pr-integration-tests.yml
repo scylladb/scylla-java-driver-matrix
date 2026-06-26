@@ -97,15 +97,15 @@ jobs:
     # unevaluated template variables (e.g. "${{ matrix.driver_type }} / Scylla
     # ${{ matrix.scylla_version }}"). With no name field, GitHub falls back to the job ID
     # ("current-workflow") when skipped, and auto-appends matrix values per row when running:
-    # e.g. "current-workflow (datastax, LATEST) / integration-test".
+    # e.g. "current-workflow (apache, LATEST) / integration-test".
     needs: changes
     if: ${{ needs.changes.outputs.runner_changed == 'true' }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - driver_type: datastax
-            driver_repository: datastax/java-driver
+          - driver_type: apache
+            driver_repository: apache/cassandra-java-driver
             scylla_version: LATEST
           - driver_type: scylla
             driver_repository: scylladb/java-driver

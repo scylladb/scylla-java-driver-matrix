@@ -28,6 +28,13 @@ def strtobool(value: str) -> bool:
 DEV_MODE = bool(strtobool(os.environ.get("DEV_MODE", "False")))
 
 
+def normalize_driver_type(driver_type: str) -> str:
+    if driver_type in ("cassandra", "datastax"):
+        logging.warning("Driver type '%s' is deprecated; using 'apache'", driver_type)
+        return "apache"
+    return driver_type
+
+
 def load_ignore_tests(ignore_file_path: Path) -> Set[str]:
     if not ignore_file_path.is_file():
         return set()
@@ -90,7 +97,7 @@ class Run:
         if self._tag.startswith('3'):
             self._report_path = self._java_driver_git / "driver-core" / "target" / "surefire-reports"
         self._root_path = Path(__file__).parent
-        self._driver_type = driver_type
+        self._driver_type = normalize_driver_type(driver_type)
 
     def _setup_out_dir(self):
         here = os.path.dirname(__file__)
@@ -218,7 +225,7 @@ class Run:
 
     def _scylla_version_for_test_command(self) -> str:
         if (
-                self._driver_type == "datastax"
+                self._driver_type == "apache"
                 and not self._tag.startswith("3")
                 and self._scylla_version
                 and ":" not in self._scylla_version

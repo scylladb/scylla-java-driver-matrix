@@ -12,7 +12,7 @@ from processjunit import ProcessJUnit
 def test_create_report_preserves_testcase_diagnostics(tmp_path):
     source_reports = tmp_path / "failsafe-reports"
     source_reports.mkdir()
-    output_report = tmp_path / "reports" / "TEST-datastax-4.19.3.xml"
+    output_report = tmp_path / "reports" / "TEST-apache-4.19.3.xml"
 
     (source_reports / "TEST-com.example.DriverIT.xml").write_text(
         """\
@@ -39,7 +39,7 @@ error line 2</error>
         new_report_xml_path=output_report,
         tests_result_path=source_reports,
         tag="4.19.3",
-        driver_type="datastax",
+        driver_type="apache",
     )
 
     assert report.summary == {"time": 1.5, "tests": 2, "errors": 1, "skipped": 0, "failures": 1}
@@ -47,7 +47,7 @@ error line 2</error>
     root = ElementTree.parse(output_report).getroot()
     assert root.find("./properties/property").attrib == {"name": "it.test", "value": "DriverIT"}
     testcases = root.findall("./testcase")
-    assert testcases[0].attrib["classname"] == "datastax.4.19.3.com.example.DriverIT"
+    assert testcases[0].attrib["classname"] == "apache.4.19.3.com.example.DriverIT"
     assert testcases[0].find("failure").text == "stack line 1\nstack line 2"
     assert testcases[0].find("system-out").text == "stdout details"
     assert testcases[1].find("error").text == "error line 1\nerror line 2"

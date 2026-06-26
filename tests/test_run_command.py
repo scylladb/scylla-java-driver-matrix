@@ -75,26 +75,33 @@ def test_4x_test_command_keeps_selector_as_one_argv_entry(tmp_path):
     ]
 
 
-def test_datastax_scylla_version_uses_release_prefix_for_ccm_download(monkeypatch, tmp_path):
+def test_apache_scylla_version_uses_release_prefix_for_ccm_download(monkeypatch, tmp_path):
     monkeypatch.delenv("SCYLLA_UNIFIED_PACKAGE", raising=False)
-    runner = make_runner(tmp_path, tag="4.12.0", driver_type="datastax")
+    runner = make_runner(tmp_path, tag="4.12.0", driver_type="apache")
 
     assert runner._scylla_version_for_test_command() == "release:2026.1.3"
 
 
-def test_datastax_scylla_version_preserves_local_package_version(monkeypatch, tmp_path):
+def test_apache_scylla_version_preserves_local_package_version(monkeypatch, tmp_path):
     monkeypatch.setenv("SCYLLA_UNIFIED_PACKAGE", "/tmp/scylla-unified.tar.gz")
-    runner = make_runner(tmp_path, tag="4.12.0", driver_type="datastax")
+    runner = make_runner(tmp_path, tag="4.12.0", driver_type="apache")
 
     assert runner._scylla_version_for_test_command() == "2026.1.3"
 
 
-def test_datastax_scylla_version_preserves_explicit_ccm_prefix(monkeypatch, tmp_path):
+def test_apache_scylla_version_preserves_explicit_ccm_prefix(monkeypatch, tmp_path):
     monkeypatch.delenv("SCYLLA_UNIFIED_PACKAGE", raising=False)
-    runner = make_runner(tmp_path, tag="4.12.0", driver_type="datastax")
+    runner = make_runner(tmp_path, tag="4.12.0", driver_type="apache")
     runner._scylla_version = "unstable/master:2026-06-26"
 
     assert runner._scylla_version_for_test_command() == "unstable/master:2026-06-26"
+
+
+def test_legacy_driver_type_alias_uses_apache_versions(tmp_path):
+    runner = make_runner(tmp_path, tag="4.12.0", driver_type="datastax")
+
+    assert runner._driver_type == "apache"
+    assert runner.version_folder == REPO_ROOT / "versions" / "apache" / "4.12.0"
 
 
 def test_environment_uses_java_11_for_add_exports_jvm_config(monkeypatch, tmp_path):

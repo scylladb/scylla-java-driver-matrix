@@ -132,8 +132,8 @@ if __name__ == '__main__':
     parser.add_argument('--scylla-version', help="relocatable scylla version to use", default=os.environ.get('SCYLLA_VERSION', None))
     parser.add_argument('--checkout-ref', help="git ref to checkout before testing. When set, the driver version is resolved from this ref and the value in --versions is ignored.", default=None)
     parser.add_argument('--recipients', help="whom to send mail at the end of the run",  nargs='+', default=None)
-    parser.add_argument('--driver-type', help='Type of java-driver ("scylla", "cassandra" or "datastax")',
-                        dest='driver_type', default='datastax')
+    parser.add_argument('--driver-type', help='Type of java-driver ("scylla" or "apache")',
+                        dest='driver_type', default='apache')
     parser.add_argument('--patch-only', action='store_true', default=False,
                         help='Only check out and apply patches, skip build and tests. Used for release validation.')
     parser.add_argument('--version-size', help='The number of the latest versions that will test.'

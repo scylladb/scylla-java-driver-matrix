@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       driver_repository:
-        description: Driver repository to test, for example datastax/java-driver or scylladb/java-driver.
+        description: Driver repository to test, for example apache/cassandra-java-driver or scylladb/java-driver.
         required: true
         type: string
       driver_type:
