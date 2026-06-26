@@ -45,16 +45,16 @@ def doJavaDriverMatrixTest(Map args) {
 	// Run the Java test upon different repos
 	// Parameters:
 	// boolean (default false): dryRun - Run builds on dry run (that will show commands instead of really run them).
-	// string (mandatory): datastaxJavaDriverCheckoutDir - Scylla or datastax checkout dir
+	// string (mandatory): javaDriverCheckoutDir - Scylla or Apache checkout dir
 	// String (mandatory): javaDriverVersions -
-	// String (mandatory): driverType - scylla || datastax
+	// String (mandatory): driverType - scylla || apache
 	// String (default: x86_64): architecture Which architecture to publish x86_64|aarch64
 	// String (mandatory): scyllaVersion - Scylla version
 	// String (mandatory): scyllaRelease - Scylla release
 
 	general.traceFunctionParams ("test.doJavaDriverMatrixTest", args)
 	general.errorMissingMandatoryParam ("test.doJavaDriverMatrixTest",
-		[datastaxJavaDriverCheckoutDir: "$args.datastaxJavaDriverCheckoutDir",
+		[javaDriverCheckoutDir: "$args.javaDriverCheckoutDir",
 		 javaDriverVersions: "$args.javaDriverVersions",
 		 scyllaVersion: "$args.scyllaVersion",
 		 scyllaRelease: "$args.scyllaRelease",
@@ -67,7 +67,7 @@ def doJavaDriverMatrixTest(Map args) {
 
 	setupCassandraResourcesDir()
 	setupTestEnv("release", architecture, dryRun, scyllaVersion, scyllaRelease)
-	String pythonParams = "python3 main.py $WORKSPACE/$args.datastaxJavaDriverCheckoutDir "
+	String pythonParams = "python3 main.py $WORKSPACE/$args.javaDriverCheckoutDir "
 
 	pythonParams += "--versions '$args.javaDriverVersions' --scylla-version ${env.SCYLLA_VERSION} --driver-type $args.driverType --version-size 2"
 	if (args.email_recipients?.trim()) {

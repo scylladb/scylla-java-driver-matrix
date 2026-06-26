@@ -6,7 +6,8 @@ from typing import Iterable
 
 
 REPOSITORIES = {
-    "datastax": "datastax/java-driver",
+    "apache": "apache/cassandra-java-driver",
+    "datastax": "apache/cassandra-java-driver",
     "scylla": "scylladb/java-driver",
 }
 

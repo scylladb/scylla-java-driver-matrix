@@ -39,6 +39,39 @@ def test_changed_version_patch_expands_to_driver_matrix_entry():
     ]
 
 
+def test_changed_apache_version_patch_expands_to_driver_matrix_entry():
+    outputs = detect_changes(["versions/apache/4.19.3/patch"], repo_root=REPO_ROOT)
+
+    assert outputs["version_count"] == "1"
+    matrix = json.loads(outputs["version_matrix"])
+    assert matrix["include"] == [
+        {
+            "driver_type": "apache",
+            "driver_repository": "apache/cassandra-java-driver",
+            "driver_version": "4.19.3",
+            "driver_ref": "4.19.3",
+        }
+    ]
+
+
+def test_changed_legacy_version_patch_maps_to_apache_repository(tmp_path):
+    version_dir = tmp_path / "versions" / "datastax" / "4.19.3"
+    version_dir.mkdir(parents=True)
+
+    outputs = detect_changes(["versions/datastax/4.19.3/patch"], repo_root=tmp_path)
+
+    assert outputs["version_count"] == "1"
+    matrix = json.loads(outputs["version_matrix"])
+    assert matrix["include"] == [
+        {
+            "driver_type": "datastax",
+            "driver_repository": "apache/cassandra-java-driver",
+            "driver_version": "4.19.3",
+            "driver_ref": "4.19.3",
+        }
+    ]
+
+
 def test_ccm_cache_restore_and_save_use_the_same_path():
     workflow = yaml.safe_load((REPO_ROOT / ".github/workflows/integration-tests.yml").read_text())
     steps = workflow["jobs"]["integration-test"]["steps"]
