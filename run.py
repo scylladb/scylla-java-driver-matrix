@@ -216,6 +216,17 @@ class Run:
             cmd.append(f"-Dit.test={tests_string}")
         return cmd
 
+    def _scylla_version_for_test_command(self) -> str:
+        if (
+                self._driver_type == "datastax"
+                and not self._tag.startswith("3")
+                and self._scylla_version
+                and ":" not in self._scylla_version
+                and os.environ.get("SCYLLA_UNIFIED_PACKAGE") is None
+        ):
+            return f"release:{self._scylla_version}"
+        return self._scylla_version
+
     def create_metadata_for_failure(self, reason: str) -> None:
         reports_dir = Path(os.path.dirname(__file__)) / "reports"
         if not reports_dir.exists():
@@ -253,11 +264,12 @@ class Run:
 
         shutil.rmtree(self._report_path, ignore_errors=True)
         if self._scylla_version:
+            scylla_version = self._scylla_version_for_test_command()
             if self._tag.startswith('3') or self._driver_type != 'scylla':
-                cmd.append(f"-Dscylla.version={self._scylla_version}")
+                cmd.append(f"-Dscylla.version={scylla_version}")
             else:
                 # Way it works after 4.19.0.0 `ccm.distribution` was introduced
-                cmd.extend([f"-Dccm.version={self._scylla_version}", "-Dccm.distribution=scylla"])
+                cmd.extend([f"-Dccm.version={scylla_version}", "-Dccm.distribution=scylla"])
                 # Before 4.19.0.0 it required a flag:
                 cmd.append("-Dccm.scylla")
 

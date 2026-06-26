@@ -9,7 +9,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from run import Run
 
 
-def make_runner(tmp_path, tag="4.19.0.9", checkout_ref=None):
+def make_runner(tmp_path, tag="4.19.0.9", checkout_ref=None, driver_type="scylla"):
     driver = tmp_path / "driver repo"
     driver.mkdir()
     return Run(
@@ -17,7 +17,7 @@ def make_runner(tmp_path, tag="4.19.0.9", checkout_ref=None):
         scylla_install_dir="",
         tag=tag,
         tests="",
-        driver_type="scylla",
+        driver_type=driver_type,
         scylla_version="2026.1.3",
         checkout_ref=checkout_ref,
     )
@@ -49,6 +49,28 @@ def test_4x_test_command_keeps_selector_as_one_argv_entry(tmp_path):
         "integration-test",
         f"-Dit.test={selector}",
     ]
+
+
+def test_datastax_scylla_version_uses_release_prefix_for_ccm_download(monkeypatch, tmp_path):
+    monkeypatch.delenv("SCYLLA_UNIFIED_PACKAGE", raising=False)
+    runner = make_runner(tmp_path, tag="4.12.0", driver_type="datastax")
+
+    assert runner._scylla_version_for_test_command() == "release:2026.1.3"
+
+
+def test_datastax_scylla_version_preserves_local_package_version(monkeypatch, tmp_path):
+    monkeypatch.setenv("SCYLLA_UNIFIED_PACKAGE", "/tmp/scylla-unified.tar.gz")
+    runner = make_runner(tmp_path, tag="4.12.0", driver_type="datastax")
+
+    assert runner._scylla_version_for_test_command() == "2026.1.3"
+
+
+def test_datastax_scylla_version_preserves_explicit_ccm_prefix(monkeypatch, tmp_path):
+    monkeypatch.delenv("SCYLLA_UNIFIED_PACKAGE", raising=False)
+    runner = make_runner(tmp_path, tag="4.12.0", driver_type="datastax")
+    runner._scylla_version = "unstable/master:2026-06-26"
+
+    assert runner._scylla_version_for_test_command() == "unstable/master:2026-06-26"
 
 
 def test_environment_uses_java_11_for_add_exports_jvm_config(monkeypatch, tmp_path):
