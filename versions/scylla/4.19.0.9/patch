@@ -89,19 +89,6 @@ index 0498462ce1..d99e0d3f68 100644
          break;
        }
        LOG.warn(
-diff --git a/pom.xml b/pom.xml
-index 96fb2401c4..2e491fbafa 100644
---- a/pom.xml
-+++ b/pom.xml
-@@ -100,7 +100,7 @@
-     <skipUnitTests>${skipTests}</skipUnitTests>
-     <release.autopublish>false</release.autopublish>
-     <pushChanges>false</pushChanges>
--    <mockitoopens.argline />
-+    <mockitoopens.argline/>
-   </properties>
-   <dependencyManagement>
-     <dependencies>
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
 index b50d56823b..eb12ba2c7c 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
@@ -357,4 +344,3 @@ index 7536c0ffdc..6e13cc5cf5 100644
                      keyspace.asCql(false)))
              .setExecutionProfile(profile)
              .build();
-
