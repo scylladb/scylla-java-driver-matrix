@@ -1,4 +1,7 @@
 tests:
+    # scylla-ccm no longer supports --sni-proxy option
+    - ScyllaSniProxyTest
+
     # Unsupported CUSTOM INDEX class org.apache.cassandra.index.sasi.SASIIndex. Note that currently, Scylla does not support SASI or any other CUSTOM INDEX class.
     - InsertIT
     - SelectCustomWhereClauseIT
@@ -42,3 +45,6 @@ tests:
     # Fix: https://github.com/scylladb/java-simulacron/pull/5 (issue #4)
     # TODO: remove this entry once the simulacron fix is released and picked up in the driver pom.xml
     - PeersV2NodeRefreshIT
+
+    # Cache invalidation can miss the callback before timeout on Scylla 2026.1.
+    - "PreparedStatementCachingIT#should_invalidate_cache_entry_on_collection_udt_change_variable_defs"

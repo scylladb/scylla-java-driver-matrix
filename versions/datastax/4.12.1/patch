@@ -160,7 +160,7 @@ index cef9e13c4..46f2a08ae 100644
        }
        if (getCassandraVersion().compareTo(Version.V2_2_0) >= 0) {
 -        execute("updateconf", "enable_user_defined_functions:true");
-+        execute("updateconf", "enable_user_defined_functions:true", "experimental:true");
++        execute("updateconf", "enable_user_defined_functions:true", "experimental_features:[udf]");
        }
 +
        if (DSE_ENABLEMENT) {
