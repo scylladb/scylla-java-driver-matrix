@@ -223,6 +223,19 @@ class Run:
             cmd.append(f"-Dit.test={tests_string}")
         return cmd
 
+    def _isolated_test_command(self, tests_string: str) -> List[str]:
+        cmd = self._mvn_command("-pl", "driver-core", "-Pisolated")
+        if tests_string:
+            cmd.append(f"-Dtest={tests_string}")
+        cmd.append("test")
+        return cmd
+
+    def _test_commands(self, tests_string: str) -> List[List[str]]:
+        commands = [self._test_command(tests_string)]
+        if self._tag.startswith('3'):
+            commands.append(self._isolated_test_command(tests_string))
+        return commands
+
     def _scylla_version_for_test_command(self) -> str:
         if (
                 self._driver_type == "apache"
@@ -267,31 +280,37 @@ class Run:
         logging.info("Starting build the version")
         self._run_command(self._mvn_command("install", "-DskipTests=true", "-Dmaven.javadoc.skip=true", "-V"))
 
-        cmd = self._test_command(tests_string)
+        test_commands = self._test_commands(tests_string)
 
         shutil.rmtree(self._report_path, ignore_errors=True)
         if self._scylla_version:
             scylla_version = self._scylla_version_for_test_command()
-            if self._tag.startswith('3') or self._driver_type != 'scylla':
-                cmd.append(f"-Dscylla.version={scylla_version}")
-            else:
-                # Way it works after 4.19.0.0 `ccm.distribution` was introduced
-                cmd.extend([f"-Dccm.version={scylla_version}", "-Dccm.distribution=scylla"])
-                # Before 4.19.0.0 it required a flag:
-                cmd.append("-Dccm.scylla")
+            for cmd in test_commands:
+                if self._tag.startswith('3') or self._driver_type != 'scylla':
+                    cmd.append(f"-Dscylla.version={scylla_version}")
+                else:
+                    # Way it works after 4.19.0.0 `ccm.distribution` was introduced
+                    cmd.extend([f"-Dccm.version={scylla_version}", "-Dccm.distribution=scylla"])
+                    # Before 4.19.0.0 it required a flag:
+                    cmd.append("-Dccm.scylla")
 
         elif self._scylla_install_dir:
-            cmd.append(f"-Dccm.directory={self._scylla_install_dir}")
+            for cmd in test_commands:
+                cmd.append(f"-Dccm.directory={self._scylla_install_dir}")
         else:
             raise ValueError("No scylla version or Cassandra dir defined")
 
         logging.info("Starting run the tests")
-        try:
-            self._run_command(cmd)
+        all_tests_passed = True
+        for cmd in test_commands:
+            try:
+                self._run_command(cmd)
+            except AssertionError:
+                # Some tests are failed
+                all_tests_passed = False
+
+        if all_tests_passed:
             logging.info("All tests are passed for '%s' version", self._tag)
-        except AssertionError:
-            # Some tests are failed
-            pass
         metadata_file = Path(os.path.dirname(__file__)) / "reports" / self.metadata_file_name
         metadata_file.parent.mkdir(exist_ok=True)
         metadata = {

@@ -38,6 +38,44 @@ def test_3x_test_command_defaults_empty_selector_to_all_tests(tmp_path):
     ]
 
 
+def test_3x_test_commands_include_isolated_profile_run(tmp_path):
+    runner = make_runner(tmp_path, tag="3.11.5.12")
+
+    assert runner._test_commands("") == [
+        [
+            "mvn",
+            "-B",
+            "-pl",
+            "driver-core",
+            "-Dtest.groups=short,long",
+            "-Dtest=*",
+            "test",
+        ],
+        [
+            "mvn",
+            "-B",
+            "-pl",
+            "driver-core",
+            "-Pisolated",
+            "test",
+        ],
+    ]
+
+
+def test_3x_isolated_test_command_keeps_explicit_selector(tmp_path):
+    runner = make_runner(tmp_path, tag="3.11.5.12")
+
+    assert runner._isolated_test_command("ControlConnectionTest") == [
+        "mvn",
+        "-B",
+        "-pl",
+        "driver-core",
+        "-Pisolated",
+        "-Dtest=ControlConnectionTest",
+        "test",
+    ]
+
+
 def test_3x_run_uses_all_tests_selector_when_no_tests_or_ignores(monkeypatch, tmp_path):
     runner = make_runner(tmp_path, tag="3.11.5.12")
     commands = []
@@ -49,13 +87,52 @@ def test_3x_run_uses_all_tests_selector_when_no_tests_or_ignores(monkeypatch, tm
 
     runner.run()
 
+    assert commands[-2:] == [
+        [
+            "mvn",
+            "-B",
+            "-pl",
+            "driver-core",
+            "-Dtest.groups=short,long",
+            "-Dtest=*",
+            "test",
+            "-Dscylla.version=2026.1.3",
+        ],
+        [
+            "mvn",
+            "-B",
+            "-pl",
+            "driver-core",
+            "-Pisolated",
+            "test",
+            "-Dscylla.version=2026.1.3",
+        ],
+    ]
+
+
+def test_3x_run_still_executes_isolated_tests_after_regular_test_failure(monkeypatch, tmp_path):
+    runner = make_runner(tmp_path, tag="3.11.5.12")
+    commands = []
+    runner.__dict__["ignore_tests"] = set()
+
+    def fake_run_command(cmd):
+        cmd = [str(arg) for arg in cmd]
+        commands.append(cmd)
+        if "-Dtest.groups=short,long" in cmd:
+            raise AssertionError("regular tests failed")
+
+    monkeypatch.setattr(run_module, "__file__", str(tmp_path / "run.py"))
+    monkeypatch.setattr(runner, "_apply_patch_files", lambda: None)
+    monkeypatch.setattr(runner, "_run_command", fake_run_command)
+
+    runner.run()
+
     assert commands[-1] == [
         "mvn",
         "-B",
         "-pl",
         "driver-core",
-        "-Dtest.groups=short,long",
-        "-Dtest=*",
+        "-Pisolated",
         "test",
         "-Dscylla.version=2026.1.3",
     ]
