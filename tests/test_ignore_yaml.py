@@ -2,6 +2,7 @@ from pathlib import Path
 import sys
 
 import pytest
+import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -38,3 +39,10 @@ tests:
 
     with pytest.raises(ValueError, match="empty or non-string entries.*duplicate entries: DriverIT"):
         load_ignore_tests(ignore_file)
+
+
+def test_datastax_4x_ignores_sni_proxy_tests():
+    for ignore_file in sorted((REPO_ROOT / "versions" / "datastax").glob("4.*/ignore.yaml")):
+        content = yaml.safe_load(ignore_file.read_text(encoding="utf-8"))
+
+        assert "ScyllaSniProxyTest" in content["tests"], ignore_file

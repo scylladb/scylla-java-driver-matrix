@@ -1,4 +1,7 @@
 tests:
+    # scylla-ccm no longer supports --sni-proxy option
+    - ScyllaSniProxyTest
+
     # Unsupported CUSTOM INDEX class org.apache.cassandra.index.sasi.SASIIndex. Note that currently, Scylla does not support SASI or any other CUSTOM INDEX class.
     - DeleteIT
     - InsertIT
@@ -140,4 +143,3 @@ tests:
     - BoundStatementCcmIT#should_set_all_occurrences_of_variable
     # Can't use nowInSeconds with protocol V4
     - NowInSecondsIT
-
