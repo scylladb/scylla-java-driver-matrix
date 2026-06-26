@@ -6,6 +6,7 @@ import sys
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+import run as run_module
 from run import Run
 
 
@@ -34,6 +35,29 @@ def test_3x_test_command_defaults_empty_selector_to_all_tests(tmp_path):
         "-Dtest.groups=short,long",
         "-Dtest=*",
         "test",
+    ]
+
+
+def test_3x_run_uses_all_tests_selector_when_no_tests_or_ignores(monkeypatch, tmp_path):
+    runner = make_runner(tmp_path, tag="3.11.5.12")
+    commands = []
+    runner.__dict__["ignore_tests"] = set()
+
+    monkeypatch.setattr(run_module, "__file__", str(tmp_path / "run.py"))
+    monkeypatch.setattr(runner, "_apply_patch_files", lambda: None)
+    monkeypatch.setattr(runner, "_run_command", lambda cmd: commands.append([str(arg) for arg in cmd]))
+
+    runner.run()
+
+    assert commands[-1] == [
+        "mvn",
+        "-B",
+        "-pl",
+        "driver-core",
+        "-Dtest.groups=short,long",
+        "-Dtest=*",
+        "test",
+        "-Dscylla.version=2026.1.3",
     ]
 
 
