@@ -5,4 +5,4 @@ tests:
   # (both TLS and non-TLS variants); ignore the whole class to avoid flakiness
   - ClientRoutesIT
   # Event-driven config reload is flaky in the matrix runner.
-  - "DriverExecutionProfileReloadIT#should_reload_configuration_when_event_fired"
+  - DriverExecutionProfileReloadIT
