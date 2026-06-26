@@ -93,12 +93,13 @@ diff --git a/pom.xml b/pom.xml
 index 96fb2401c4..2e491fbafa 100644
 --- a/pom.xml
 +++ b/pom.xml
-@@ -100,7 +100,7 @@
+@@ -100,8 +100,8 @@
      <skipUnitTests>${skipTests}</skipUnitTests>
      <release.autopublish>false</release.autopublish>
      <pushChanges>false</pushChanges>
 -    <mockitoopens.argline />
 +    <mockitoopens.argline/>
+     <api.plumber.skip>false</api.plumber.skip>
    </properties>
    <dependencyManagement>
      <dependencies>
