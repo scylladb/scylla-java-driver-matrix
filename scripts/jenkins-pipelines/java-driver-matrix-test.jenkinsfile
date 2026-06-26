@@ -102,11 +102,13 @@ pipeline {
                     scyllaJavaDriverMatrixBranch = params.JAVA_DRIVER_MATRIX_BRANCH ?: branchProperties.stableDriverMatrixBranchName
                     apacheJavaDriverRepo = params.APACHE_JAVA_DRIVER_REPO ?: "https://github.com/apache/cassandra-java-driver.git"
                     scyllaJavaDriverRepo = params.SCYLLA_JAVA_DRIVER_REPO ?: "https://github.com/scylladb/java-driver.git"
+                    relengRepo = params.RELENG_REPO ?: gitProperties.scyllaPkgRepoUrl
+                    relengBranch = params.RELENG_BRANCH ?: branchProperties.stableBranchName
 
                     git.cleanWorkSpaceUponRequest()
                     git.checkoutToDir (javaDriverMatrixRepoUrl, scyllaJavaDriverMatrixBranch, gitProperties.scyllaJavaDriverMatrixCheckoutDir)
                     git.checkoutToDir (gitProperties.scyllaCcmRepoUrl, ccmBranch, gitProperties.scyllaCcmCheckoutDir)
-                    git.checkoutToDir (gitProperties.scyllaPkgRepoUrl, branchProperties.stableBranchName, gitProperties.scyllaPkgCheckoutDir)
+                    git.checkoutToDir (relengRepo, relengBranch, gitProperties.scyllaPkgCheckoutDir)
                     git.checkoutToDir (apacheJavaDriverRepo, "4.x", apacheJavaDriverCheckoutDir)
                     git.checkoutToDir (scyllaJavaDriverRepo, "3.x", scyllaJavaDriverCheckoutDir)
 
