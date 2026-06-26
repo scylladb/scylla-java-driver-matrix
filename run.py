@@ -143,11 +143,31 @@ class Run:
     def environment(self):
         result = {}
         result.update(os.environ)
+        if java_home := self._java_home_for_driver():
+            result['JAVA_HOME'] = java_home
         if self._scylla_version:
             result['SCYLLA_VERSION'] = self._scylla_version
         else:
             result['INSTALL_DIRECTORY'] = self._scylla_install_dir
         return result
+
+    def _java_home_for_driver(self) -> str:
+        jvm_config = self._java_driver_git / ".mvn" / "jvm.config"
+        if not jvm_config.is_file():
+            return ""
+        if "--add-exports=" not in jvm_config.read_text(encoding="utf-8"):
+            return ""
+
+        for candidate in (
+                os.environ.get("JAVA_HOME_11_X64"),
+                os.environ.get("JAVA_11_HOME"),
+                "/usr/lib/jvm/temurin-11-jdk-amd64",
+        ):
+            if candidate and Path(candidate).is_dir():
+                return candidate
+
+        logging.warning("Driver JVM config requires Java 11, but no Java 11 home was found")
+        return ""
 
     def _run_command(self, cmd: Sequence[str]):
         cmd = [str(arg) for arg in cmd]

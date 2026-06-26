@@ -51,6 +51,22 @@ def test_4x_test_command_keeps_selector_as_one_argv_entry(tmp_path):
     ]
 
 
+def test_environment_uses_java_11_for_add_exports_jvm_config(monkeypatch, tmp_path):
+    java_home_11 = tmp_path / "jdk-11"
+    java_home_11.mkdir()
+    monkeypatch.setenv("JAVA_HOME", "/usr/lib/jvm/temurin-8-jdk-amd64")
+    monkeypatch.setenv("JAVA_HOME_11_X64", str(java_home_11))
+    runner = make_runner(tmp_path)
+    jvm_config = runner._java_driver_git / ".mvn" / "jvm.config"
+    jvm_config.parent.mkdir()
+    jvm_config.write_text(
+        "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED\n",
+        encoding="utf-8",
+    )
+
+    assert runner.environment["JAVA_HOME"] == str(java_home_11)
+
+
 def test_run_command_invokes_subprocess_without_shell(monkeypatch, tmp_path):
     runner = make_runner(tmp_path, checkout_ref="feature/ref; echo unsafe")
     captured = {}
