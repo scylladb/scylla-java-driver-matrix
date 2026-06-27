@@ -25,6 +25,10 @@ def strtobool(value: str) -> bool:
     raise ValueError(f"invalid truth value {value!r}")
 
 
+def is_scylla_release_repository_version(value: str) -> bool:
+    return re.fullmatch(r"\d+(?:\.\d+)+(?:[-.]?(?:rc|alpha|beta)\d+)?", value) is not None
+
+
 DEV_MODE = bool(strtobool(os.environ.get("DEV_MODE", "False")))
 
 
@@ -242,6 +246,7 @@ class Run:
                 and not self._tag.startswith("3")
                 and self._scylla_version
                 and ":" not in self._scylla_version
+                and is_scylla_release_repository_version(self._scylla_version)
                 and os.environ.get("SCYLLA_UNIFIED_PACKAGE") is None
         ):
             return f"release:{self._scylla_version}"

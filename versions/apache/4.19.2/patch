@@ -927,8 +927,8 @@ index f0ce6bc5b..e76d46b11 100644
 +  // When SCYLLA_UNIFIED_PACKAGE is set, a local tarball is available (e.g. Jenkins
 +  // pre-downloads dev/unreleased builds not published to S3). Passing a bare version
 +  // causes CCM to use that local file via packages_from_env().
-+  // When SCYLLA_UNIFIED_PACKAGE is not set (e.g. GH Actions CI), prepend "release:" so
-+  // CCM downloads the published release from S3.
++  // When SCYLLA_UNIFIED_PACKAGE is not set (e.g. GH Actions CI), prepend "release:" only
++  // for release-repository version strings so CCM downloads them from S3.
 +  // This avoids "release:<dev-version>" S3 lookup failures on Jenkins while still
 +  // allowing GH Actions to download released versions automatically.
 +  // Regression introduced by PR #147 (commit 3107868) which added getScyllaCcmVersionString()
@@ -942,11 +942,11 @@ index f0ce6bc5b..e76d46b11 100644
 +      // Already has a CCM prefix (e.g. "unstable/master:date") — pass through as-is.
 +      return SCYLLA_VERSION;
 +    }
-+    // Use local tarball when available, otherwise download from S3.
++    // Use local tarball when available; otherwise only release-repository versions use S3.
 +    if (System.getenv("SCYLLA_UNIFIED_PACKAGE") != null) {
 +      return SCYLLA_VERSION;
 +    }
-+    return "release:" + SCYLLA_VERSION;
++    return SCYLLA_VERSION.matches("\\d+(\\.\\d+)+([-.]?(rc|alpha|beta)\\d+)?") ? "release:" + SCYLLA_VERSION : SCYLLA_VERSION;
 +  }
 +
    private String getCcmVersionString(Version version) {
@@ -1126,4 +1126,3 @@ index 7536c0ffd..6e13cc5cf 100644
                      keyspace.asCql(false)))
              .setExecutionProfile(profile)
              .build();
-
