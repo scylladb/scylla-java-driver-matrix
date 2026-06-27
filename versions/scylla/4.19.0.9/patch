@@ -215,12 +215,12 @@ index e7b2b4e4a0..8fbbed8d95 100644
 +      // When SCYLLA_UNIFIED_PACKAGE is set, a local ScyllaDB tarball is available (e.g.
 +      // Jenkins pre-downloads dev/unreleased builds that are not published to S3). Pass the
 +      // bare version string so CCM resolves via packages_from_env() and uses the local file.
-+      // When not set (e.g. GH Actions CI), prepend "release:" so CCM downloads the published
-+      // release from S3. This avoids "release:<dev-version>" S3 lookup failures on Jenkins.
++      // When not set (e.g. GH Actions CI), prepend "release:" only for release-repository
++      // versions so CCM downloads them from S3 and dev labels stay unprefixed.
 +      if (System.getenv("SCYLLA_UNIFIED_PACKAGE") != null) {
 +        return versionString;
 +      }
-+      return "release:" + versionString;
++      return versionString.matches("\\d+(\\.\\d+)+([-.]?(rc|alpha|beta)\\d+)?") ? "release:" + versionString : versionString;
      }
      // for 4.0 or 5.0 pre-releases, the CCM version string needs to be "4.0-alpha1", "4.0-alpha2" or
      // "5.0-beta1" Version.toString() always adds a patch value, even if it's not specified when
