@@ -2,7 +2,7 @@ diff --git a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java b
 index 344678c814..74a126cb20 100644
 --- a/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
 +++ b/driver-core/src/test/java/com/datastax/driver/core/CCMBridge.java
-@@ -207,11 +207,11 @@ public class CCMBridge implements CCMAccess {
+@@ -207,11 +207,12 @@ public class CCMBridge implements CCMAccess {
        installArgs.add("-v git:" + branch.trim().replaceAll("\"", ""));
      } else if (inputScyllaVersion != null && !inputScyllaVersion.trim().isEmpty()) {
        installArgs.add(" --scylla ");
@@ -11,10 +11,11 @@ index 344678c814..74a126cb20 100644
 -      } else {
 -        installArgs.add("-v " + inputScyllaVersion);
 -      }
-+      // Dropping release prefix to force CCM to use version downloaded locally by Jenkins since
-+      // resolving proper CCM version argument value based on the Jenkins's scylla-version was
-+      // proven difficult.
-+      installArgs.add("-v " + inputScyllaVersion);
++      // Use release: prefix in GitHub Actions (no local tarball); bare version in Jenkins
++      // where SCYLLA_UNIFIED_PACKAGE points CCM to a local tarball via packages_from_env().
++      String scyllaCcmVersion = System.getenv("SCYLLA_UNIFIED_PACKAGE") != null
++          ? inputScyllaVersion : "release:" + inputScyllaVersion;
++      installArgs.add("-v " + scyllaCcmVersion);
 +
        // Detect Scylla Enterprise - it should start with
        // a 4-digit year.
@@ -97,4 +98,36 @@ index ea75f84544..ea70e9081a 100644
  public class SessionStressTest extends CCMTestsSupport {
  
    private static final Logger logger = LoggerFactory.getLogger(SessionStressTest.class);
-
+diff --git a/driver-core/src/test/java/com/datastax/driver/core/ShardAwarenessTest.java b/driver-core/src/test/java/com/datastax/driver/core/ShardAwarenessTest.java
+index ac36feb518..8fa0a885b9 100644
+--- a/driver-core/src/test/java/com/datastax/driver/core/ShardAwarenessTest.java
++++ b/driver-core/src/test/java/com/datastax/driver/core/ShardAwarenessTest.java
+@@ -82,12 +82,17 @@
+           event.getSource(),
+           event.getThreadName(),
+           event.getDescription());
+-      assertThat(event.getThreadName()).startsWith(shard);
++      // Only data-local events carry the owning shard. Scylla 2025.1 adds coordinator-side
++      // events that legitimately run on shard 0 regardless of the data shard. Also, since
++      // Scylla 2025.1 the thread name carries a service-level suffix ("shard N/sl:<level>"),
++      // so strip it before comparing.
+       if (event.getDescription().contains("querying locally")) {
+         anyLocal = true;
++        String normalized = event.getThreadName().replaceFirst("/sl:[^/]*$", "");
++        assertThat(normalized).startsWith(shard);
+       }
+     }
+-    assertThat(anyLocal);
++    assertTrue(anyLocal, "No 'querying locally' trace event was observed for the query");
+   }
+ 
+   @Test(groups = "short")
+@@ -95,7 +100,7 @@
+     session().execute("DROP KEYSPACE IF EXISTS shardawaretest");
+     session()
+         .execute(
+-            "CREATE KEYSPACE shardawaretest WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': '3'}");
++            "CREATE KEYSPACE shardawaretest WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': '3'} AND TABLETS = {'enabled': false}");
+     session()
+         .execute("CREATE TABLE shardawaretest.t (pk text, ck text, v text, PRIMARY KEY (pk, ck))");
+ 
