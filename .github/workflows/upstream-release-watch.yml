@@ -1,0 +1,166 @@
+name: Upstream Release Watch
+
+# Detects a newly published upstream release and runs the regular integration workflow against that
+# exact tag.
+#
+# Upstream releases are the one case no other check reaches. A new Scylla driver tag is caught by the
+# release workflow in scylladb/java-driver, and an edited patch is caught by
+# changed-driver-version-tests, which runs a full integration leg for every version directory a pull
+# request touches — but apache/cassandra-java-driver is tagged by the ASF, so neither a ScyllaDB
+# release nor a matrix pull request happens at that moment. The tag simply appears,
+# `Run.version_folder` starts falling back to the newest version directory below it, and the first
+# sign of trouble is the ~3.5h nightly Jenkins matrix failing before it executes a single test.
+#
+# Scope, deliberately: only the newest release tag is checked, while the nightly selects the newest
+# two (--version-size 2). Widening this would duplicate a line of defence that already exists — a
+# second upstream release landing before the first is onboarded is a discrepancy the nightly is there
+# to surface. For the same reason a missing version directory, not a stored marker, is the trigger:
+# it keeps firing until someone onboards the tag, and stops on its own once they do.
+#
+# This cannot be a webhook: GitHub only delivers those for repositories we own. Polling on a schedule
+# is the only mechanism available for a third-party repository.
+
+on:
+  schedule:
+    # 06:00 UTC = 08:00 CEST / 09:00 IDT. Anchored to the start of the working day, not to the
+    # nightly: the Jenkins driver-matrix jobs run at 21:58 UTC, so a run timed just before them would
+    # fire when nobody is around to act. Firing in the morning instead means the result is waiting
+    # when people arrive, it covers tags published the previous evening, and there is a full working
+    # day to add the missing version directory before that night's matrix run.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      driver_ref:
+        description: 'driver_ref: upstream tag to test. When empty, the newest release tag is detected.'
+        type: string
+        default: ''
+  pull_request:
+    paths:
+      - '.github/workflows/upstream-release-watch.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    name: Detect new upstream release
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    outputs:
+      driver_ref: ${{ steps.decide.outputs.driver_ref }}
+      should_run: ${{ steps.decide.outputs.should_run }}
+    steps:
+      - name: Checkout matrix
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Resolve newest upstream release tag
+        if: ${{ inputs.driver_ref == '' }}
+        id: get-upstream-tag
+        uses: scylladb-actions/get-version@a1dc4fedfb5684242148020b24e4150b1fe7ad08 # v0.4.5
+        with:
+          source: github-tag
+          repo: apache/cassandra-java-driver
+          # get-version treats dots as version-component separators, so the three regex components
+          # below match only clean three-part releases and the LAST.LAST.LAST selector then picks the
+          # newest one. 71 of the 179 upstream tags are not releases at all (`1.0.0-rc1`,
+          # `1.0.2-dse2`, bare `2.0`), and extract_n_latest_repo_tags only ever selects N.N.N, so a
+          # bare LAST filter could hand us a tag the matrix would never test.
+          filters: '^[0-9]+$.^[0-9]+$.^[0-9]+$ and LAST.LAST.LAST'
+          github-token: ${{ github.token }}
+
+      - name: Decide whether the tag is new
+        id: decide
+        env:
+          DRIVER_REF_INPUT: ${{ inputs.driver_ref }}
+          DRIVER_REF_LATEST: ${{ steps.get-upstream-tag.outputs.versions }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          VERSIONS_DIR = Path("versions") / "apache"
+
+
+          def pick(input_value: str, latest_json: str, kind: str) -> str:
+              """Explicit input wins, otherwise take the first resolved version.
+
+              Same shape as the Normalize inputs step in integration-tests.yml.
+              """
+              if input_value:
+                  return input_value
+              latest = json.loads(latest_json or "[]")
+              if not latest:
+                  raise SystemExit(f"Unable to resolve {kind}")
+              return latest[0]
+
+
+          def as_tuple(name: str):
+              try:
+                  return tuple(int(part) for part in name.split("."))
+              except ValueError:
+                  return None
+
+
+          def fallback_for(tag: str) -> str:
+              """The directory Run.version_folder would resolve to: newest defined version <= tag."""
+              target = as_tuple(tag)
+              if target is None:
+                  return ""
+              candidates = []
+              for path in VERSIONS_DIR.iterdir():
+                  if not path.is_dir():
+                      continue
+                  parsed = as_tuple(path.name)
+                  if parsed is not None and parsed <= target:
+                      candidates.append((parsed, path.name))
+              return max(candidates)[1] if candidates else ""
+
+
+          forced = os.environ.get("DRIVER_REF_INPUT", "")
+          driver_ref = pick(
+              forced,
+              os.environ.get("DRIVER_REF_LATEST", ""),
+              "upstream release tag",
+          )
+
+          # The same exact-match test Run.version_folder makes before it starts falling back.
+          has_directory = (VERSIONS_DIR / driver_ref).is_dir()
+          # An explicit dispatch is a request to test that tag, onboarded or not.
+          should_run = bool(forced) or not has_directory
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              fh.write(f"driver_ref={driver_ref}\n")
+              fh.write(f"should_run={str(should_run).lower()}\n")
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as fh:
+              heading = "Requested" if forced else "Newest"
+              fh.write(f"### {heading} `apache` release tag: `{driver_ref}`\n\n")
+              if not has_directory:
+                  fallback = fallback_for(driver_ref) or "nothing"
+                  fh.write(
+                      f"No `versions/apache/{driver_ref}/` directory, so the matrix would patch this "
+                      f"tag with `versions/apache/{fallback}/`. Running the integration workflow "
+                      f"against `{driver_ref}` to find out whether that still works.\n"
+                  )
+              elif forced:
+                  fh.write(
+                      f"`versions/apache/{driver_ref}/` exists; re-testing it on request.\n"
+                  )
+              else:
+                  fh.write(f"`versions/apache/{driver_ref}/` exists — nothing to do.\n")
+          PY
+
+  integration:
+    name: Integration tests for the new tag
+    needs: detect
+    if: ${{ needs.detect.outputs.should_run == 'true' }}
+    uses: ./.github/workflows/integration-tests.yml
+    with:
+      driver_repository: apache/cassandra-java-driver
+      driver_type: apache
+      driver_ref: ${{ needs.detect.outputs.driver_ref }}
+      scylla_version: LATEST
