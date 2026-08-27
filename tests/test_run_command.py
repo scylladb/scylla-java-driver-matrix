@@ -2,6 +2,7 @@ from pathlib import Path
 import subprocess
 import sys
 
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
@@ -203,6 +204,19 @@ def test_legacy_driver_type_alias_uses_apache_versions(tmp_path):
 
     assert runner._driver_type == "apache"
     assert runner.version_folder == REPO_ROOT / "versions" / "apache" / "4.12.0"
+
+
+def test_version_folder_falls_back_to_the_newest_directory_at_or_below_the_tag(tmp_path):
+    runner = make_runner(tmp_path, tag="4.19.1.5", driver_type="apache")
+
+    assert runner.version_folder == REPO_ROOT / "versions" / "apache" / "4.19.1"
+
+
+def test_version_folder_raises_below_every_defined_version(tmp_path):
+    runner = make_runner(tmp_path, tag="4.0.0", driver_type="apache")
+
+    with pytest.raises(ValueError, match="4.0.0"):
+        runner.version_folder
 
 
 def test_environment_uses_java_11_for_add_exports_jvm_config(monkeypatch, tmp_path):

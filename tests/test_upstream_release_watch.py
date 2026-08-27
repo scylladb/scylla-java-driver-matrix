@@ -37,6 +37,11 @@ def test_resolve_fails_when_no_tag_resolves(versions_dir):
             resolve("", latest, versions_dir=versions_dir)
 
 
+def test_resolve_fails_cleanly_on_malformed_json(versions_dir):
+    with pytest.raises(SystemExit):
+        resolve("", "not json", versions_dir=versions_dir)
+
+
 def test_onboarded_tag_does_not_run():
     assert decide(forced=False, has_directory=True, already_tested=False)["should_run"] == "false"
 
@@ -79,6 +84,14 @@ def test_summary_points_at_a_dispatch_once_the_tag_has_been_tested(versions_dir)
 
     assert "driver_ref: 4.19.9" in summary
     assert "4.19.3" not in summary
+
+
+def test_watch_workflow_never_runs_integration_from_a_pull_request():
+    workflow = yaml.safe_load(
+        (REPO_ROOT / ".github/workflows/upstream-release-watch.yml").read_text()
+    )
+
+    assert "github.event_name != 'pull_request'" in workflow["jobs"]["integration"]["if"]
 
 
 def test_watch_workflow_marks_a_tag_only_after_a_conclusive_run():

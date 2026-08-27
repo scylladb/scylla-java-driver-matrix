@@ -30,7 +30,9 @@ name: Upstream Release Watch
 #
 # The decision itself lives in scripts/upstream_release_watch.py and is unit-tested in
 # tests/test_upstream_release_watch.py. It has to be tested there: a pull request run only ever sees
-# the newest upstream tag as already onboarded, so the branches that matter never execute here.
+# the newest upstream tag as already onboarded, so the branches that matter never execute here. The
+# integration job also excludes github.event_name == 'pull_request' explicitly, so a pull request
+# can never start the multi-hour run even if that assumption ever stops holding.
 #
 # This cannot be a webhook: GitHub only delivers those for repositories we own. Polling on a schedule
 # is the only mechanism available for a third-party repository.
@@ -98,16 +100,14 @@ jobs:
           import sys
 
           sys.path.insert(0, os.environ["GITHUB_WORKSPACE"])
-          from scripts.upstream_release_watch import resolve
+          from scripts.upstream_release_watch import resolve, write_outputs
 
           outputs = resolve(
               os.environ.get("DRIVER_REF_INPUT", ""),
               os.environ.get("DRIVER_REF_LATEST", ""),
           )
 
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              for name, value in outputs.items():
-                  output.write(f"{name}={value}\n")
+          write_outputs(outputs, os.environ["GITHUB_OUTPUT"])
           PY
 
       # Resolved before the decision, not after, because the key names the tag.
@@ -133,16 +133,14 @@ jobs:
           import sys
 
           sys.path.insert(0, os.environ["GITHUB_WORKSPACE"])
-          from scripts.upstream_release_watch import as_bool, decide, summarize
+          from scripts.upstream_release_watch import as_bool, decide, summarize, write_outputs
 
           driver_ref = os.environ["DRIVER_REF"]
           forced = as_bool(os.environ.get("FORCED", ""))
           has_directory = as_bool(os.environ.get("HAS_DIRECTORY", ""))
           already_tested = as_bool(os.environ.get("ALREADY_TESTED", ""))
 
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              for name, value in decide(forced, has_directory, already_tested).items():
-                  output.write(f"{name}={value}\n")
+          write_outputs(decide(forced, has_directory, already_tested), os.environ["GITHUB_OUTPUT"])
 
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
               summary.write(summarize(driver_ref, forced, has_directory, already_tested))
@@ -151,7 +149,10 @@ jobs:
   integration:
     name: Integration tests for the new tag
     needs: detect
-    if: ${{ needs.detect.outputs.should_run == 'true' }}
+    # A pull_request run should_run is always false in practice (the newest tag is already onboarded
+    # by the time a PR runs), but excluding the trigger explicitly means a PR can never start the
+    # multi-hour run even if that stops holding, instead of relying on it as an assumption.
+    if: ${{ needs.detect.outputs.should_run == 'true' && github.event_name != 'pull_request' }}
     uses: ./.github/workflows/integration-tests.yml
     with:
       driver_repository: apache/cassandra-java-driver

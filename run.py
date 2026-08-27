@@ -123,7 +123,7 @@ class Run:
 
     @cached_property
     def version_folder(self) -> Path:
-        version_pattern = re.compile(r"(\d+.)+\d+$")
+        version_pattern = re.compile(r"(\d+\.)+\d+$")
         target_version_folder = self._root_path / "versions" / self._driver_type
         driver_version_dir_path = target_version_folder / self.version
         if driver_version_dir_path.is_dir():

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from pathlib import Path
 
 
@@ -12,6 +13,18 @@ def as_bool(value: str) -> bool:
     return value.strip().lower() == "true"
 
 
+def write_outputs(outputs: dict[str, str], path: str) -> None:
+    """Append to $GITHUB_OUTPUT with the delimited form, safe for a value containing a newline.
+
+    driver_ref can come straight from a workflow_dispatch input, so a plain `name=value` line would
+    let an embedded newline forge extra output lines.
+    """
+    with open(path, "a", encoding="utf-8") as handle:
+        for name, value in outputs.items():
+            delimiter = f"ghadelim_{uuid.uuid4().hex}"
+            handle.write(f"{name}<<{delimiter}\n{value}\n{delimiter}\n")
+
+
 def pick(input_value: str, latest_json: str, kind: str) -> str:
     """Explicit input wins, otherwise take the first resolved version.
 
@@ -19,7 +32,10 @@ def pick(input_value: str, latest_json: str, kind: str) -> str:
     """
     if input_value:
         return input_value
-    latest = json.loads(latest_json or "[]")
+    try:
+        latest = json.loads(latest_json or "[]")
+    except json.JSONDecodeError as error:
+        raise SystemExit(f"Unable to resolve {kind}: {error}") from error
     if not latest:
         raise SystemExit(f"Unable to resolve {kind}")
     return latest[0]
@@ -81,12 +97,14 @@ def summarize(
     label = Path(versions_dir).as_posix()
     heading = "Requested" if forced else "Newest"
     lines = [f"### {heading} `apache` release tag: `{driver_ref}`", ""]
+    # Reuses decide()'s formula rather than re-deriving it, so the wording can't drift from should_run.
+    should_run = decide(forced, has_directory, already_tested)["should_run"] == "true"
 
-    if has_directory and not forced:
+    if has_directory and not should_run:
         lines.append(f"`{label}/{driver_ref}/` exists — nothing to do.")
     elif has_directory:
         lines.append(f"`{label}/{driver_ref}/` exists; re-testing it on request.")
-    elif already_tested and not forced:
+    elif not should_run:
         lines.append(
             f"No `{label}/{driver_ref}/` directory, and the integration workflow has already run "
             f"against this tag. Nothing to do until the directory is added; dispatch this workflow "
