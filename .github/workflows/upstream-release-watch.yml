@@ -14,8 +14,23 @@ name: Upstream Release Watch
 # Scope, deliberately: only the newest release tag is checked, while the nightly selects the newest
 # two (--version-size 2). Widening this would duplicate a line of defence that already exists — a
 # second upstream release landing before the first is onboarded is a discrepancy the nightly is there
-# to surface. For the same reason a missing version directory, not a stored marker, is the trigger:
-# it keeps firing until someone onboards the tag, and stops on its own once they do.
+# to surface.
+#
+# A missing version directory starts the run; a cache marker stops it repeating. The integration
+# workflow takes hours, so each tag gets exactly one: mark-tested records the tag once the run
+# reaches a conclusion, success or failure, and the next morning's run finds the marker and does
+# nothing. A red run is the signal itself and is already reported — repeating it daily until someone
+# onboards the tag would bury it rather than reinforce it. Cancelled and skipped runs record nothing,
+# so an infra abort is retried the next day, and an evicted marker (caches expire after 7 days
+# unaccessed, though the daily lookup counts as access) costs one extra run at worst. Onboarding the
+# directory still makes the whole workflow a no-op, so no marker ever needs cleaning up. Cache scope
+# keeps the two triggers apart: a pull request run may read the default branch's markers but writes
+# only into its own scope, so it cannot suppress a scheduled run. A workflow_dispatch naming a
+# driver_ref bypasses the marker entirely, so any tag can be re-tested on demand.
+#
+# The decision itself lives in scripts/upstream_release_watch.py and is unit-tested in
+# tests/test_upstream_release_watch.py. It has to be tested there: a pull request run only ever sees
+# the newest upstream tag as already onboarded, so the branches that matter never execute here.
 #
 # This cannot be a webhook: GitHub only delivers those for repositories we own. Polling on a schedule
 # is the only mechanism available for a third-party repository.
@@ -37,6 +52,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/upstream-release-watch.yml'
+      - 'scripts/upstream_release_watch.py'
 
 permissions:
   contents: read
@@ -47,7 +63,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 10
     outputs:
-      driver_ref: ${{ steps.decide.outputs.driver_ref }}
+      driver_ref: ${{ steps.resolve.outputs.driver_ref }}
       should_run: ${{ steps.decide.outputs.should_run }}
     steps:
       - name: Checkout matrix
@@ -70,88 +86,66 @@ jobs:
           filters: '^[0-9]+$.^[0-9]+$.^[0-9]+$ and LAST.LAST.LAST'
           github-token: ${{ github.token }}
 
-      - name: Decide whether the tag is new
-        id: decide
+      - name: Normalize the tag
+        id: resolve
         env:
           DRIVER_REF_INPUT: ${{ inputs.driver_ref }}
           DRIVER_REF_LATEST: ${{ steps.get-upstream-tag.outputs.versions }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json
           import os
-          from pathlib import Path
+          import sys
 
-          VERSIONS_DIR = Path("versions") / "apache"
+          sys.path.insert(0, os.environ["GITHUB_WORKSPACE"])
+          from scripts.upstream_release_watch import resolve
 
-
-          def pick(input_value: str, latest_json: str, kind: str) -> str:
-              """Explicit input wins, otherwise take the first resolved version.
-
-              Same shape as the Normalize inputs step in integration-tests.yml.
-              """
-              if input_value:
-                  return input_value
-              latest = json.loads(latest_json or "[]")
-              if not latest:
-                  raise SystemExit(f"Unable to resolve {kind}")
-              return latest[0]
-
-
-          def as_tuple(name: str):
-              try:
-                  return tuple(int(part) for part in name.split("."))
-              except ValueError:
-                  return None
-
-
-          def fallback_for(tag: str) -> str:
-              """The directory Run.version_folder would resolve to: newest defined version <= tag."""
-              target = as_tuple(tag)
-              if target is None:
-                  return ""
-              candidates = []
-              for path in VERSIONS_DIR.iterdir():
-                  if not path.is_dir():
-                      continue
-                  parsed = as_tuple(path.name)
-                  if parsed is not None and parsed <= target:
-                      candidates.append((parsed, path.name))
-              return max(candidates)[1] if candidates else ""
-
-
-          forced = os.environ.get("DRIVER_REF_INPUT", "")
-          driver_ref = pick(
-              forced,
+          outputs = resolve(
+              os.environ.get("DRIVER_REF_INPUT", ""),
               os.environ.get("DRIVER_REF_LATEST", ""),
-              "upstream release tag",
           )
 
-          # The same exact-match test Run.version_folder makes before it starts falling back.
-          has_directory = (VERSIONS_DIR / driver_ref).is_dir()
-          # An explicit dispatch is a request to test that tag, onboarded or not.
-          should_run = bool(forced) or not has_directory
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              for name, value in outputs.items():
+                  output.write(f"{name}={value}\n")
+          PY
 
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
-              fh.write(f"driver_ref={driver_ref}\n")
-              fh.write(f"should_run={str(should_run).lower()}\n")
+      # Resolved before the decision, not after, because the key names the tag.
+      - name: Look up the tested marker
+        id: marker
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: .upstream-release-tested
+          key: upstream-release-tested-apache-${{ steps.resolve.outputs.driver_ref }}
+          lookup-only: true
 
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as fh:
-              heading = "Requested" if forced else "Newest"
-              fh.write(f"### {heading} `apache` release tag: `{driver_ref}`\n\n")
-              if not has_directory:
-                  fallback = fallback_for(driver_ref) or "nothing"
-                  fh.write(
-                      f"No `versions/apache/{driver_ref}/` directory, so the matrix would patch this "
-                      f"tag with `versions/apache/{fallback}/`. Running the integration workflow "
-                      f"against `{driver_ref}` to find out whether that still works.\n"
-                  )
-              elif forced:
-                  fh.write(
-                      f"`versions/apache/{driver_ref}/` exists; re-testing it on request.\n"
-                  )
-              else:
-                  fh.write(f"`versions/apache/{driver_ref}/` exists — nothing to do.\n")
+      - name: Decide whether to run
+        id: decide
+        env:
+          DRIVER_REF: ${{ steps.resolve.outputs.driver_ref }}
+          FORCED: ${{ steps.resolve.outputs.forced }}
+          HAS_DIRECTORY: ${{ steps.resolve.outputs.has_directory }}
+          ALREADY_TESTED: ${{ steps.marker.outputs.cache-hit }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import sys
+
+          sys.path.insert(0, os.environ["GITHUB_WORKSPACE"])
+          from scripts.upstream_release_watch import as_bool, decide, summarize
+
+          driver_ref = os.environ["DRIVER_REF"]
+          forced = as_bool(os.environ.get("FORCED", ""))
+          has_directory = as_bool(os.environ.get("HAS_DIRECTORY", ""))
+          already_tested = as_bool(os.environ.get("ALREADY_TESTED", ""))
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              for name, value in decide(forced, has_directory, already_tested).items():
+                  output.write(f"{name}={value}\n")
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write(summarize(driver_ref, forced, has_directory, already_tested))
           PY
 
   integration:
@@ -164,3 +158,30 @@ jobs:
       driver_type: apache
       driver_ref: ${{ needs.detect.outputs.driver_ref }}
       scylla_version: LATEST
+
+  mark-tested:
+    name: Record the tag as tested
+    needs: [detect, integration]
+    # Only a conclusive run counts. A cancelled or skipped one leaves no marker, so the tag comes back
+    # tomorrow.
+    if: >-
+      ${{ always() && needs.detect.outputs.should_run == 'true'
+      && (needs.integration.result == 'success' || needs.integration.result == 'failure') }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: Write the marker
+        env:
+          DRIVER_REF: ${{ needs.detect.outputs.driver_ref }}
+          RESULT: ${{ needs.integration.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          printf '%s %s %s\n' "$DRIVER_REF" "$RESULT" "$RUN_URL" > .upstream-release-tested
+          cat .upstream-release-tested
+
+      - name: Save the tested marker
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: .upstream-release-tested
+          key: upstream-release-tested-apache-${{ needs.detect.outputs.driver_ref }}
