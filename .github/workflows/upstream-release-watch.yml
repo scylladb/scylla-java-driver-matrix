@@ -59,6 +59,13 @@ on:
 permissions:
   contents: read
 
+# Queues, never cancels: a second trigger's detect job waits for the first run to finish, so it
+# sees the marker the first run wrote and no-ops instead of racing it into a second integration
+# run for the same tag. Scoped by ref, so a pull_request run (its own refs/pull/N/merge) never
+# queues behind the schedule/workflow_dispatch runs on the default branch, or vice versa.
+concurrency:
+  group: upstream-release-watch-${{ github.ref }}
+
 jobs:
   detect:
     name: Detect new upstream release
@@ -126,6 +133,7 @@ jobs:
           FORCED: ${{ steps.resolve.outputs.forced }}
           HAS_DIRECTORY: ${{ steps.resolve.outputs.has_directory }}
           ALREADY_TESTED: ${{ steps.marker.outputs.cache-hit }}
+          IS_PULL_REQUEST: ${{ github.event_name == 'pull_request' }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -139,11 +147,14 @@ jobs:
           forced = as_bool(os.environ.get("FORCED", ""))
           has_directory = as_bool(os.environ.get("HAS_DIRECTORY", ""))
           already_tested = as_bool(os.environ.get("ALREADY_TESTED", ""))
+          is_pull_request = as_bool(os.environ.get("IS_PULL_REQUEST", ""))
 
           write_outputs(decide(forced, has_directory, already_tested), os.environ["GITHUB_OUTPUT"])
 
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
-              summary.write(summarize(driver_ref, forced, has_directory, already_tested))
+              summary.write(
+                  summarize(driver_ref, forced, has_directory, already_tested, is_pull_request=is_pull_request)
+              )
           PY
 
   integration:

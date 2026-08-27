@@ -86,12 +86,43 @@ def test_summary_points_at_a_dispatch_once_the_tag_has_been_tested(versions_dir)
     assert "4.19.3" not in summary
 
 
+def test_summary_says_the_pull_request_run_will_skip_when_should_run_is_true(versions_dir):
+    summary = summarize(
+        "4.19.9",
+        forced=False,
+        has_directory=False,
+        already_tested=False,
+        versions_dir=versions_dir,
+        is_pull_request=True,
+    )
+
+    assert "pull_request run, so the integration job is skipped" in summary
+    assert "Running the integration workflow" not in summary
+
+
+def test_summary_defaults_to_the_non_pull_request_wording(versions_dir):
+    summary = summarize(
+        "4.19.9", forced=False, has_directory=False, already_tested=False, versions_dir=versions_dir
+    )
+
+    assert "Running the integration workflow" in summary
+
+
 def test_watch_workflow_never_runs_integration_from_a_pull_request():
     workflow = yaml.safe_load(
         (REPO_ROOT / ".github/workflows/upstream-release-watch.yml").read_text()
     )
 
     assert "github.event_name != 'pull_request'" in workflow["jobs"]["integration"]["if"]
+
+
+def test_watch_workflow_queues_overlapping_triggers_instead_of_racing():
+    workflow = yaml.safe_load(
+        (REPO_ROOT / ".github/workflows/upstream-release-watch.yml").read_text()
+    )
+
+    assert workflow["concurrency"]["group"] == "upstream-release-watch-${{ github.ref }}"
+    assert "cancel-in-progress" not in workflow["concurrency"]
 
 
 def test_watch_workflow_marks_a_tag_only_after_a_conclusive_run():

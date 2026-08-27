@@ -93,6 +93,7 @@ def summarize(
     has_directory: bool,
     already_tested: bool,
     versions_dir: Path = DEFAULT_VERSIONS_DIR,
+    is_pull_request: bool = False,
 ) -> str:
     label = Path(versions_dir).as_posix()
     heading = "Requested" if forced else "Newest"
@@ -112,10 +113,21 @@ def summarize(
         )
     else:
         fallback = fallback_for(driver_ref, versions_dir) or "nothing"
+        # forced is always false on a pull_request run (workflow_dispatch inputs aren't populated),
+        # so this is the only should_run branch a pull_request run can actually reach.
+        if is_pull_request:
+            action = (
+                "This is a pull_request run, so the integration job is skipped regardless; the "
+                f"schedule or a workflow_dispatch would run it against `{driver_ref}`."
+            )
+        else:
+            action = (
+                f"Running the integration workflow against `{driver_ref}` to find out whether that "
+                "still works."
+            )
         lines.append(
             f"No `{label}/{driver_ref}/` directory, so the matrix would patch this tag with "
-            f"`{label}/{fallback}/`. Running the integration workflow against `{driver_ref}` to "
-            f"find out whether that still works."
+            f"`{label}/{fallback}/`. {action}"
         )
 
     return "\n".join(lines) + "\n"
