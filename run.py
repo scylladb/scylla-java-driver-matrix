@@ -123,7 +123,7 @@ class Run:
 
     @cached_property
     def version_folder(self) -> Path:
-        version_pattern = re.compile(r"(\d+.)+\d+$")
+        version_pattern = re.compile(r"(\d+\.)+\d+$")
         target_version_folder = self._root_path / "versions" / self._driver_type
         driver_version_dir_path = target_version_folder / self.version
         if driver_version_dir_path.is_dir():
@@ -140,10 +140,11 @@ class Run:
         )
         for tag in tags_defined:
             if tag <= target_version:
-                logging.info("The full directory for '%s' tag is '%s'", self._tag, driver_version_dir_path)
-                return target_version_folder / str(tag)
+                fallback_dir_path = target_version_folder / str(tag)
+                logging.info("No directory for '%s' tag; falling back to '%s'", self._tag, fallback_dir_path)
+                return fallback_dir_path
         else:
-            raise ValueError("Not found directory for python-driver version '%s'", self._tag)
+            raise ValueError(f"Not found directory for java-driver version '{self._tag}'")
 
     @cached_property
     def ignore_tests(self) -> Set[str]:

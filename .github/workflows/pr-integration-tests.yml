@@ -9,6 +9,26 @@ permissions:
   pull-requests: read
 
 jobs:
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout matrix
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install test dependencies
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check pytest -r scripts/requirements.txt
+
+      - name: Run unit tests
+        run: |
+          set -euo pipefail
+          python3 -m pytest tests/ -q
+
   changes:
     name: Detect PR changes
     runs-on: ubuntu-latest
