@@ -90,9 +90,18 @@ index ead4415ddc..73fd7b2243 100644
        }
        LOG.warn(
 diff --git a/pom.xml b/pom.xml
-index def3c4e153..3d74c4689e 100644
+index def3c4e153..05319d2db1 100644
 --- a/pom.xml
 +++ b/pom.xml
+@@ -63,7 +63,7 @@
+         as the literal string "@{argLine}", which the forked JVM then
+         rejects as an option.
+     -->
+-    <argLine />
++    <argLine/>
+     <config.version>1.4.8</config.version>
+     <!-- when changing version also update version in LICENSE_binary  -->
+     <hdrhistogram.version>2.2.2</hdrhistogram.version>
 @@ -110,7 +110,7 @@
      <skipUnitTests>${skipTests}</skipUnitTests>
      <release.autopublish>false</release.autopublish>
@@ -102,6 +111,15 @@ index def3c4e153..3d74c4689e 100644
      <!--
          Declared empty for the same reason as argLine above: the JDK
          profiles below only set this from JDK 14 onwards, so on JDK 11 it
+@@ -121,7 +121,7 @@
+         JVM then rejects ("Could not find or load main class
+         ${blockhound.argline}").
+     -->
+-    <blockhound.argline />
++    <blockhound.argline/>
+     <api.plumber.skip>false</api.plumber.skip>
+   </properties>
+   <dependencyManagement>
 diff --git a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java b/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
 index b50d56823b..eb12ba2c7c 100644
 --- a/test-infra/src/main/java/com/datastax/oss/driver/api/testinfra/ccm/BaseCcmRule.java
