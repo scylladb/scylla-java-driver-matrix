@@ -38,6 +38,7 @@ jobs:
       scripts_image_changed: ${{ steps.detect.outputs.scripts_image_changed }}
       version_count: ${{ steps.detect.outputs.version_count }}
       version_matrix: ${{ steps.detect.outputs.version_matrix }}
+      pending_tags: ${{ steps.detect.outputs.pending_tags }}
     steps:
       - name: Checkout matrix
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -92,6 +93,15 @@ jobs:
               for name, value in outputs.items():
                   output.write(f"{name}={value}\n")
           PY
+
+      - name: Report untagged driver versions
+        if: ${{ steps.detect.outputs.pending_tags != '' }}
+        env:
+          PENDING_TAGS: ${{ steps.detect.outputs.pending_tags }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          echo "::notice::Skipping integration tests for versions without a published driver tag: ${PENDING_TAGS}. Validate them by re-dispatching the driver release with matrix-ref=refs/pull/${PR_NUMBER}/head, and merge once the tag is public."
 
   require-scripts-image:
     name: Require scripts/image update

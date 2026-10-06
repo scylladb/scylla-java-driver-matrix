@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable
 
 
 REPOSITORIES = {
@@ -26,8 +27,21 @@ def is_runner_path(filename: str) -> bool:
     return filename.endswith(".py") or filename in RUNNER_PATHS
 
 
-def detect_changes(changed_files: Iterable[str], repo_root: Path = Path(".")) -> dict[str, str]:
+def remote_tag_exists(repository: str, tag: str) -> bool:
+    output = subprocess.check_output(
+        ["git", "ls-remote", "--tags", f"https://github.com/{repository}.git", f"refs/tags/{tag}"],
+        text=True,
+    )
+    return bool(output.strip())
+
+
+def detect_changes(
+    changed_files: Iterable[str],
+    repo_root: Path = Path("."),
+    tag_exists: Callable[[str, str], bool] | None = None,
+) -> dict[str, str]:
     repo_root = Path(repo_root)
+    tag_exists = tag_exists or remote_tag_exists
     changed_files = list(changed_files)
 
     version_dirs = set()
@@ -39,10 +53,16 @@ def detect_changes(changed_files: Iterable[str], repo_root: Path = Path(".")) ->
                 version_dirs.add((parts[1], parts[2]))
 
     version_matrix = []
+    pending_tags = []
     for driver_type, version in sorted(version_dirs):
         repository = REPOSITORIES.get(driver_type)
         if repository is None:
             raise SystemExit(f"Unsupported driver type in versions/{driver_type}/{version}")
+        # A patch for a release that is not tagged yet (e.g. an aborted release re-dispatched with
+        # this PR as matrix-ref) cannot be checked out here; the release run validates it instead.
+        if not tag_exists(repository, version):
+            pending_tags.append(f"{driver_type}/{version}")
+            continue
         version_matrix.append(
             {
                 "driver_type": driver_type,
@@ -75,4 +95,5 @@ def detect_changes(changed_files: Iterable[str], repo_root: Path = Path(".")) ->
         "scripts_image_changed": str(scripts_image_changed).lower(),
         "version_count": str(len(version_matrix)),
         "version_matrix": json.dumps(matrix, separators=(",", ":")),
+        "pending_tags": ",".join(pending_tags),
     }
