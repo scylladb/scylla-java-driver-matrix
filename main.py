@@ -8,7 +8,6 @@ import subprocess
 from typing import List
 
 import run
-from email_sender import send_mail, create_report, get_driver_origin_remote
 
 logging.basicConfig(level=logging.INFO)
 
@@ -84,6 +83,8 @@ def main(java_driver_git, scylla_install_dir, tests, versions, driver_type, scyl
             runner.create_metadata_for_failure(reason="\n".join(failure_reason))
 
     if recipients and not patch_only:
+        # Imported lazily so patch-only runs don't need boto3/jinja2 installed.
+        from email_sender import send_mail, create_report, get_driver_origin_remote
         email_report = create_report(results=results)
         email_report['driver_remote'] = get_driver_origin_remote(java_driver_git)
         email_report['status'] = "SUCCESS" if status == 0 else "FAILED"

@@ -29,6 +29,15 @@ python3 ./main.py ../java-driver/ --versions 4.3.0 --scylla-version unstable/mas
 nstable/master:201912142059
 ```
 
+### Validating patches only (release gate)
+`--patch-only` checks out the tag and applies the matrix patches without building or testing.
+This mode needs only the pinned packages in `scripts/requirements-patch-only.txt`:
+
+```bash
+pip install --require-hashes -r scripts/requirements-patch-only.txt
+python3 ./main.py ../java-driver/ --versions 4.19.2.2 --driver-type scylla --patch-only
+```
+
 ### Running from PyCharm:
 - Create a basic Python configure.
 - Working directory value is: `/home/oren/Desktop/github/python-driver-matrix`

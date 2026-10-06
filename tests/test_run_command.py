@@ -286,3 +286,27 @@ def test_run_command_invokes_subprocess_without_shell(monkeypatch, tmp_path):
     assert captured["cmd"] == ["git", "checkout", "feature/ref; echo unsafe"]
     assert "shell" not in captured["kwargs"]
     assert captured["kwargs"]["cwd"] == tmp_path / "driver repo"
+
+
+def test_patch_only_stops_after_applying_patches(monkeypatch, tmp_path):
+    driver = tmp_path / "driver repo"
+    driver.mkdir()
+    runner = Run(
+        java_driver_git=driver,
+        scylla_install_dir="",
+        tag="4.19.2.2",
+        tests="",
+        driver_type="scylla",
+        patch_only=True,
+    )
+    commands = []
+    monkeypatch.setattr(runner, "_apply_patch_files", lambda: commands.append(["<apply patches>"]))
+    monkeypatch.setattr(runner, "_run_command", lambda cmd: commands.append([str(arg) for arg in cmd]))
+
+    assert runner.run() is None
+
+    assert commands == [
+        ["git", "checkout", "."],
+        ["git", "checkout", "4.19.2.2"],
+        ["<apply patches>"],
+    ]
