@@ -15,7 +15,7 @@ IMAGE_SOURCE_PATHS = {"scripts/Dockerfile", "scripts/requirements.txt"}
 
 RUNNER_PATHS = {
     ".github/workflows/integration-tests.yml",
-    ".github/workflows/scylla-integration-matrix.yml",
+    ".github/workflows/driver-integration-matrix.yml",
     ".github/workflows/pr-integration-tests.yml",
     "scripts/run_test.sh",
     "scripts/image",

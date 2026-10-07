@@ -16,7 +16,7 @@ def test_runner_changes_include_shell_wrapper_and_workflows():
         "scripts/run_test.sh",
         "scripts/image",
         ".github/workflows/integration-tests.yml",
-        ".github/workflows/scylla-integration-matrix.yml",
+        ".github/workflows/driver-integration-matrix.yml",
         ".github/workflows/pr-integration-tests.yml",
         "main.py",
     ]:

@@ -110,19 +110,10 @@ jobs:
           fi
           echo "scripts/image was updated."
 
-  current-apache:
+  current-workflow:
     needs: changes
     if: ${{ needs.changes.outputs.runner_changed == 'true' }}
-    uses: ./.github/workflows/integration-tests.yml
-    with:
-      driver_repository: apache/cassandra-java-driver
-      driver_type: apache
-      scylla_version: LATEST
-
-  current-scylla:
-    needs: changes
-    if: ${{ needs.changes.outputs.runner_changed == 'true' }}
-    uses: ./.github/workflows/scylla-integration-matrix.yml
+    uses: ./.github/workflows/driver-integration-matrix.yml
 
   changed-driver-version-tests:
     # No explicit name: when skipped
