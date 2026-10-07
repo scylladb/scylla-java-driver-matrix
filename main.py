@@ -40,11 +40,14 @@ def resolve_driver_version(repo_directory: str, checkout_ref: str) -> str:
     return version
 
 
-def main(java_driver_git, scylla_install_dir, tests, versions, driver_type, scylla_version, recipients, patch_only=False, checkout_ref=None):
+def main(java_driver_git, scylla_install_dir, tests, versions, driver_type, scylla_version, recipients, patch_only=False, checkout_ref=None, driver_version=None):
     status = 0
     results = {}
 
-    if checkout_ref:
+    if driver_version:
+        versions = [driver_version]
+        logging.info("Testing driver ref '%s' as version '%s'", checkout_ref or driver_version, driver_version)
+    elif checkout_ref:
         versions = [resolve_driver_version(java_driver_git, checkout_ref)]
         logging.info("Resolved driver ref '%s' to version '%s'", checkout_ref, versions[0])
 
@@ -131,6 +134,7 @@ if __name__ == '__main__':
                         help='Initial tests list to pass along. Runner will modify it according to ignore.yaml from version patch. default=\'\'')
     parser.add_argument('--scylla-version', help="relocatable scylla version to use", default=os.environ.get('SCYLLA_VERSION', None))
     parser.add_argument('--checkout-ref', help="git ref to checkout before testing. When set, the driver version is resolved from this ref and the value in --versions is ignored.", default=None)
+    parser.add_argument('--driver-version', help="version used to select matrix patches and ignores for --checkout-ref, even when that ref is untagged", default=None)
     parser.add_argument('--recipients', help="whom to send mail at the end of the run",  nargs='+', default=None)
     parser.add_argument('--driver-type', help='Type of java-driver ("scylla" or "apache")',
                         dest='driver_type', default='apache')
@@ -143,6 +147,8 @@ if __name__ == '__main__':
                         type=int, default=None, nargs='?')
 
     arguments = parser.parse_args()
+    if arguments.driver_version and not arguments.checkout_ref:
+        parser.error("--driver-version requires --checkout-ref")
     versions = []
     _input_versions = []
     if not isinstance(arguments.versions, list):
@@ -163,4 +169,5 @@ if __name__ == '__main__':
          driver_type=arguments.driver_type,
          recipients=arguments.recipients,
          patch_only=arguments.patch_only,
-         checkout_ref=arguments.checkout_ref)
+         checkout_ref=arguments.checkout_ref,
+         driver_version=arguments.driver_version)

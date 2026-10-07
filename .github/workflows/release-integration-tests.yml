@@ -1,0 +1,35 @@
+name: Pre-release Scylla Integration Tests
+
+on:
+  workflow_call:
+    inputs:
+      driver_ref:
+        description: Commit SHA of the driver source to release.
+        required: true
+        type: string
+      driver_version:
+        description: Untagged release version used to select matrix patches and ignores.
+        required: true
+        type: string
+      matrix_ref:
+        description: Commit SHA used to call this workflow; ensures the runner uses the same matrix code.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  scylla-integration-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        scylla_version: [LATEST, PRIOR, LTS-LATEST, LTS-PRIOR]
+    uses: $/.github/workflows/integration-tests.yml
+    with:
+      driver_repository: scylladb/java-driver
+      driver_type: scylla
+      driver_ref: ${{ inputs.driver_ref }}
+      driver_version: ${{ inputs.driver_version }}
+      matrix_ref: ${{ inputs.matrix_ref }}
+      scylla_version: ${{ matrix.scylla_version }}

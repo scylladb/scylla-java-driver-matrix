@@ -16,6 +16,16 @@ on:
         required: false
         type: string
         default: ""
+      driver_version:
+        description: Version used for matrix patch and ignore selection when driver_ref is an untagged commit.
+        required: false
+        type: string
+        default: ""
+      matrix_ref:
+        description: Matrix repository commit to check out. Required when called from another repository.
+        required: false
+        type: string
+        default: ""
       scylla_version:
         description: Scylla version or alias to test. Supported aliases are LATEST, PRIOR, LTS-LATEST, and LTS-PRIOR. When empty, LATEST is used.
         required: false
@@ -39,8 +49,18 @@ jobs:
       CCM_DIR: ${{ github.workspace }}/scylla-ccm
     steps:
       - name: Checkout matrix
+        if: ${{ github.repository == 'scylladb/scylla-java-driver-matrix' }}
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout matrix for external caller
+        if: ${{ github.repository != 'scylladb/scylla-java-driver-matrix' }}
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          repository: scylladb/scylla-java-driver-matrix
+          ref: ${{ inputs.matrix_ref }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -212,12 +232,16 @@ jobs:
       - name: Run integration tests
         env:
           DRIVER_REF: ${{ steps.resolve.outputs.driver_ref }}
+          DRIVER_VERSION: ${{ inputs.driver_version }}
           DRIVER_TYPE: ${{ inputs.driver_type }}
           SCYLLA_VERSION: ${{ steps.resolve.outputs.scylla_version }}
           TESTS: ${{ inputs.tests }}
         run: |
           set -euo pipefail
           args=(./scripts/run_test.sh python3 ./main.py driver --checkout-ref "$DRIVER_REF" --driver-type "$DRIVER_TYPE" --scylla-version "$SCYLLA_VERSION")
+          if [ -n "$DRIVER_VERSION" ]; then
+            args+=(--driver-version "$DRIVER_VERSION")
+          fi
           if [ -n "$TESTS" ]; then
             args+=(--tests "$TESTS")
           fi

@@ -160,4 +160,5 @@ jobs:
       driver_repository: ${{ matrix.driver_repository }}
       driver_type: ${{ matrix.driver_type }}
       driver_ref: ${{ matrix.driver_ref }}
-      scylla_version: LATEST
+      driver_version: ${{ matrix.driver_version }}
+      scylla_version: ${{ matrix.scylla_version || 'LATEST' }}

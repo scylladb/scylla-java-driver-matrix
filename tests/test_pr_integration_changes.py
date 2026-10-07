@@ -16,6 +16,7 @@ def test_runner_changes_include_shell_wrapper_and_workflows():
         "scripts/run_test.sh",
         "scripts/image",
         ".github/workflows/integration-tests.yml",
+        ".github/workflows/release-integration-tests.yml",
         ".github/workflows/pr-integration-tests.yml",
         "main.py",
     ]:
@@ -69,6 +70,26 @@ def test_changed_legacy_version_patch_maps_to_apache_repository(tmp_path):
             "driver_version": "4.19.3",
             "driver_ref": "4.19.3",
         }
+    ]
+
+
+def test_candidate_version_uses_checkout_ref_file(tmp_path):
+    version_dir = tmp_path / "versions" / "scylla" / "4.19.2.3"
+    version_dir.mkdir(parents=True)
+    (version_dir / "checkout-ref").write_text("scylla-4.x\n")
+
+    outputs = detect_changes(["versions/scylla/4.19.2.3/patch"], repo_root=tmp_path)
+
+    assert outputs["version_count"] == "4"
+    assert json.loads(outputs["version_matrix"])["include"] == [
+        {
+            "driver_type": "scylla",
+            "driver_repository": "scylladb/java-driver",
+            "driver_version": "4.19.2.3",
+            "driver_ref": "scylla-4.x",
+            "scylla_version": scylla_version,
+        }
+        for scylla_version in ("LATEST", "PRIOR", "LTS-LATEST", "LTS-PRIOR")
     ]
 
 
