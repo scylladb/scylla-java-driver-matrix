@@ -1,20 +1,23 @@
-name: Pre-release Scylla Integration Tests
+name: Scylla Driver Integration Matrix
 
 on:
   workflow_call:
     inputs:
       driver_ref:
-        description: Commit SHA of the driver source to release.
-        required: true
+        description: Driver commit SHA to test; latest tag when empty.
+        required: false
         type: string
+        default: ""
       driver_version:
-        description: Untagged release version used to select matrix patches and ignores.
-        required: true
+        description: Version used for matrix patches and ignores; resolved from the tag when empty.
+        required: false
         type: string
+        default: ""
       matrix_ref:
-        description: Commit SHA used to call this workflow; ensures the runner uses the same matrix code.
-        required: true
+        description: Commit SHA used to call this workflow; required for cross-repository callers.
+        required: false
         type: string
+        default: ""
 
 permissions:
   contents: read

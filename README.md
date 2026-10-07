@@ -4,7 +4,7 @@ Helper script to run integration test from multiple java-drivers against scylla
 
 ## Pre-release integration gate
 
-The reusable workflow `.github/workflows/release-integration-tests.yml` runs the
+The reusable workflow `.github/workflows/scylla-integration-matrix.yml` runs the
 Scylla Java driver against the same four Scylla targets used by this repository's
 PR CI: `LATEST`, `PRIOR`, `LTS-LATEST`, and `LTS-PRIOR`. The caller supplies a
 driver commit SHA and the version whose patches and ignore list should be used.
@@ -16,7 +16,7 @@ In the driver's release workflow, add a job before the release job:
 ```yaml
 jobs:
   pre-release-integration:
-    uses: scylladb/scylla-java-driver-matrix/.github/workflows/release-integration-tests.yml@<matrix-commit-sha>
+    uses: scylladb/scylla-java-driver-matrix/.github/workflows/scylla-integration-matrix.yml@<matrix-commit-sha>
     with:
       driver_ref: ${{ github.sha }}
       driver_version: 4.19.2.3
