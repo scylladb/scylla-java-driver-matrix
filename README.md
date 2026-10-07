@@ -18,8 +18,8 @@ jobs:
   pre-release-integration:
     uses: scylladb/scylla-java-driver-matrix/.github/workflows/driver-integration-matrix.yml@master
     with:
-      scylla_driver_ref: ${{ github.sha }}
-      scylla_driver_version: 4.19.2.3
+      driver_ref: ${{ github.sha }}
+      driver_version: 4.19.2.3
 
   release:
     needs: pre-release-integration

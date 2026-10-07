@@ -13,12 +13,12 @@ on:
         required: false
         type: boolean
         default: true
-      scylla_driver_ref:
+      driver_ref:
         description: Scylla driver commit SHA to test; latest tag when empty.
         required: false
         type: string
         default: ""
-      scylla_driver_version:
+      driver_version:
         description: Version used for Scylla driver patches and ignores; resolved from the tag when empty.
         required: false
         type: string
@@ -46,6 +46,6 @@ jobs:
     with:
       driver_repository: scylladb/java-driver
       driver_type: scylla
-      driver_ref: ${{ inputs.scylla_driver_ref }}
-      driver_version: ${{ inputs.scylla_driver_version }}
+      driver_ref: ${{ inputs.driver_ref }}
+      driver_version: ${{ inputs.driver_version }}
       scylla_version: ${{ matrix.scylla_version }}
