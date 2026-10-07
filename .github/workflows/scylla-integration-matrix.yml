@@ -13,11 +13,6 @@ on:
         required: false
         type: string
         default: ""
-      matrix_ref:
-        description: Commit SHA used to call this workflow; required for cross-repository callers.
-        required: false
-        type: string
-        default: ""
 
 permissions:
   contents: read
@@ -34,5 +29,4 @@ jobs:
       driver_type: scylla
       driver_ref: ${{ inputs.driver_ref }}
       driver_version: ${{ inputs.driver_version }}
-      matrix_ref: ${{ inputs.matrix_ref }}
       scylla_version: ${{ matrix.scylla_version }}

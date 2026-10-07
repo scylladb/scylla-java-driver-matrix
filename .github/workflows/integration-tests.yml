@@ -21,11 +21,6 @@ on:
         required: false
         type: string
         default: ""
-      matrix_ref:
-        description: Matrix repository commit to check out. Required when called from another repository.
-        required: false
-        type: string
-        default: ""
       scylla_version:
         description: Scylla version or alias to test. Supported aliases are LATEST, PRIOR, LTS-LATEST, and LTS-PRIOR. When empty, LATEST is used.
         required: false
@@ -55,22 +50,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Require pinned matrix ref for external caller
-        if: ${{ github.repository != 'scylladb/scylla-java-driver-matrix' }}
-        env:
-          MATRIX_REF: ${{ inputs.matrix_ref }}
-        run: |
-          if [ -z "$MATRIX_REF" ]; then
-            echo "::error::matrix_ref is required for cross-repository calls"
-            exit 1
-          fi
-
       - name: Checkout matrix for external caller
         if: ${{ github.repository != 'scylladb/scylla-java-driver-matrix' }}
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           repository: scylladb/scylla-java-driver-matrix
-          ref: ${{ inputs.matrix_ref }}
+          ref: master
           fetch-depth: 0
           persist-credentials: false
 

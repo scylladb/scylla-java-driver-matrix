@@ -16,19 +16,17 @@ In the driver's release workflow, add a job before the release job:
 ```yaml
 jobs:
   pre-release-integration:
-    uses: scylladb/scylla-java-driver-matrix/.github/workflows/scylla-integration-matrix.yml@<matrix-commit-sha>
+    uses: scylladb/scylla-java-driver-matrix/.github/workflows/scylla-integration-matrix.yml@master
     with:
       driver_ref: ${{ github.sha }}
       driver_version: 4.19.2.3
-      matrix_ref: <matrix-commit-sha>
 
   release:
     needs: pre-release-integration
     # Existing release job configuration follows.
 ```
 
-Pin `matrix_ref` to the same commit used in `uses`, so the checked-out runner,
-patches, and workflow match. For a re-release, pass the predecessor commit of
+The release call uses matrix `master`. For a re-release, pass the predecessor commit of
 the target tag as `driver_ref`, matching the driver's release checkout.
 
 
