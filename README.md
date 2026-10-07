@@ -2,6 +2,33 @@
 
 Helper script to run integration test from multiple java-drivers against scylla
 
+## Pre-release integration gate
+
+The reusable workflow `.github/workflows/driver-integration-matrix.yml` is also
+used by this repository's PR CI. By default it runs Apache Cassandra Java driver
+against Scylla `LATEST`, plus Scylla Java driver against `LATEST`, `PRIOR`,
+`LTS-LATEST`, and `LTS-PRIOR`. Set `run_apache` or `run_scylla` to `false` to
+disable that driver group. A Scylla release caller can pass a driver commit SHA
+and version for patch and ignore selection before the release tag exists.
+
+In the driver's release workflow, add a job before the release job:
+
+```yaml
+jobs:
+  pre-release-integration:
+    uses: scylladb/scylla-java-driver-matrix/.github/workflows/driver-integration-matrix.yml@master
+    with:
+      driver_ref: ${{ github.sha }}
+      driver_version: 4.19.2.3
+
+  release:
+    needs: pre-release-integration
+    # Existing release job configuration follows.
+```
+
+The release call uses matrix `master`. For a re-release, pass the predecessor commit of
+the target tag as `driver_ref`, matching the driver's release checkout.
+
 
 ## Usage
 

@@ -15,6 +15,7 @@ IMAGE_SOURCE_PATHS = {"scripts/Dockerfile", "scripts/requirements.txt"}
 
 RUNNER_PATHS = {
     ".github/workflows/integration-tests.yml",
+    ".github/workflows/driver-integration-matrix.yml",
     ".github/workflows/pr-integration-tests.yml",
     "scripts/run_test.sh",
     "scripts/image",
@@ -43,14 +44,21 @@ def detect_changes(changed_files: Iterable[str], repo_root: Path = Path(".")) ->
         repository = REPOSITORIES.get(driver_type)
         if repository is None:
             raise SystemExit(f"Unsupported driver type in versions/{driver_type}/{version}")
-        version_matrix.append(
-            {
+        candidate_ref_file = path / "checkout-ref"
+        candidate_ref = candidate_ref_file.read_text().strip() if candidate_ref_file.is_file() else ""
+        if candidate_ref_file.is_file() and not candidate_ref:
+            raise SystemExit(f"Empty checkout-ref in {path}")
+        scylla_versions = ("LATEST", "PRIOR", "LTS-LATEST", "LTS-PRIOR") if candidate_ref and driver_type == "scylla" else ("LATEST",)
+        for scylla_version in scylla_versions:
+            entry = {
                 "driver_type": driver_type,
                 "driver_repository": repository,
                 "driver_version": version,
-                "driver_ref": version,
+                "driver_ref": candidate_ref or version,
             }
-        )
+            if candidate_ref:
+                entry["scylla_version"] = scylla_version
+            version_matrix.append(entry)
 
     runner_changed = any(is_runner_path(filename) for filename in changed_files)
     scripts_image_source_changed = any(filename in IMAGE_SOURCE_PATHS for filename in changed_files)
