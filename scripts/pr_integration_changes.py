@@ -44,6 +44,7 @@ def detect_changes(changed_files: Iterable[str], repo_root: Path = Path(".")) ->
         repository = REPOSITORIES.get(driver_type)
         if repository is None:
             raise SystemExit(f"Unsupported driver type in versions/{driver_type}/{version}")
+        path = repo_root / "versions" / driver_type / version
         candidate_ref_file = path / "checkout-ref"
         candidate_ref = candidate_ref_file.read_text().strip() if candidate_ref_file.is_file() else ""
         if candidate_ref_file.is_file() and not candidate_ref:
