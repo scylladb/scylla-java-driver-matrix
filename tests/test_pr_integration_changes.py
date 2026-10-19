@@ -93,6 +93,35 @@ def test_candidate_version_uses_checkout_ref_file(tmp_path):
     ]
 
 
+
+def test_changed_versions_keep_their_own_checkout_refs(tmp_path):
+    historical = tmp_path / "versions" / "scylla" / "4.19.2.2"
+    candidate = tmp_path / "versions" / "scylla" / "4.19.2.3"
+    historical.mkdir(parents=True)
+    candidate.mkdir(parents=True)
+    (candidate / "checkout-ref").write_text("scylla-4.x\n")
+    changed_files = [
+        "versions/scylla/4.19.2.2/patch",
+        "versions/scylla/4.19.2.3/patch",
+    ]
+
+    for paths in (changed_files, list(reversed(changed_files))):
+        outputs = detect_changes(paths, repo_root=tmp_path)
+        entries = json.loads(outputs["version_matrix"])["include"]
+
+        assert outputs["version_count"] == "5"
+        assert entries[0] == {
+            "driver_type": "scylla",
+            "driver_repository": "scylladb/java-driver",
+            "driver_version": "4.19.2.2",
+            "driver_ref": "4.19.2.2",
+        }
+        assert {entry["driver_ref"] for entry in entries[1:]} == {"scylla-4.x"}
+        assert {entry["scylla_version"] for entry in entries[1:]} == {
+            "LATEST", "PRIOR", "LTS-LATEST", "LTS-PRIOR"
+        }
+
+
 def test_ccm_cache_restore_and_save_use_the_same_path():
     workflow = yaml.safe_load((REPO_ROOT / ".github/workflows/integration-tests.yml").read_text())
     steps = workflow["jobs"]["integration-test"]["steps"]

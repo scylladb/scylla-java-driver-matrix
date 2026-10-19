@@ -298,20 +298,7 @@ index e35c8013e3..a9417858a0 100644
        return this;
      }
  
-@@ -737,6 +774,12 @@ public class CcmBridge implements AutoCloseable {
-       return this;
-     }
- 
-+    /** Sets a numeric cluster ID prefix used by {@link CustomCcmRule} to avoid IP collisions. */
-+    public Builder withIdPrefix(String idPrefix) {
-+      this.ipPrefix = "127.0." + idPrefix + ".";
-+      return this;
-+    }
-+
-     /** Adds an option to the {@code ccm create} command. */
-     public Builder withCreateOption(String option) {
-       this.createOptions.add(option);
-@@ -808,7 +851,8 @@ public class CcmBridge implements AutoCloseable {
+@@ -808,7 +845,8 @@ public class CcmBridge implements AutoCloseable {
            dseRawYaml,
            createOptions,
            jvmArgs,
@@ -346,21 +333,9 @@ index 5ea1bf7ed3..3f7f5be283 100644
      private final CcmBridge.Builder bridgeBuilder = CcmBridge.builder();
  
 +    public Builder() {
-+      this.withIdPrefix(Integer.toString(CLUSTER_ID.incrementAndGet()));
++      bridgeBuilder.withIpPrefix("127.0." + CLUSTER_ID.incrementAndGet() + ".");
 +    }
 +
      public Builder withNodes(int... nodes) {
        bridgeBuilder.withNodes(nodes);
        return this;
-@@ -134,6 +140,11 @@ public class CustomCcmRule extends BaseCcmRule {
-       return this;
-     }
- 
-+    public Builder withIdPrefix(String idPrefix) {
-+      bridgeBuilder.withIdPrefix(idPrefix);
-+      return this;
-+    }
-+
-     public CustomCcmRule build() {
-       return new CustomCcmRule(bridgeBuilder.build());
-     }
