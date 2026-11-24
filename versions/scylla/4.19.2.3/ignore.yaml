@@ -12,3 +12,7 @@ tests:
   # Fix: https://github.com/scylladb/java-simulacron/pull/5 (issue #4)
   # TODO: remove this entry once the simulacron fix is released and picked up in the driver pom.xml
   - PeersV2NodeRefreshIT
+  # Scylla 2027.1 (master) now sends the oversized-batch warning to the client
+  # (scylladb/scylladb#10196), but this test still expects none from Scylla.
+  # TODO: remove once a driver release ships scylladb/java-driver#1430.
+  - ExecutionInfoWarningsIT#should_expose_warnings_on_execution_info
