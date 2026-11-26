@@ -14,5 +14,6 @@ tests:
   - PeersV2NodeRefreshIT
   # Scylla 2027.1 (master) now sends the oversized-batch warning to the client
   # (scylladb/scylladb#10196), but this test still expects none from Scylla.
-  # TODO: remove once a driver release ships scylladb/java-driver#1430.
+  # Keep it: these tags predate the fix (scylladb/java-driver#1430). Tags from
+  # 4.19.4.1 on use versions/scylla/4.19.4.1, which runs the test.
   - ExecutionInfoWarningsIT#should_expose_warnings_on_execution_info
